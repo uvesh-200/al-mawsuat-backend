@@ -1,0 +1,7 @@
+Generic single-database configuration with an async SQLAlchemy engine.
+
+Run migrations from the repository root:
+
+  alembic upgrade head
+
+Ensure `DATABASE_URL` uses the async driver, e.g. `postgresql+asyncpg://...`.

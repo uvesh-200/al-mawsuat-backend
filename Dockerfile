@@ -6,8 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libpq-dev \
-      libmupdf-dev \
       tesseract-ocr \
       tesseract-ocr-ara \
       tesseract-ocr-urd \

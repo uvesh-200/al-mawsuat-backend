@@ -70,6 +70,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Override host-only .env URLs so the app and one-off commands (e.g. alembic) reach Postgres on the compose network.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       - postgres
       - redis

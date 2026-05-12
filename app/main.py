@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-
 from app.config import settings
 
 app = FastAPI(title="Al-Mawsu'at al-Deobandiyyah API")
