@@ -22,9 +22,12 @@ class User(Base):
         index=True,
     )
     email = Column(String(300), unique=True, nullable=False)
-    hashed_pw = Column(String(500), nullable=False)
+    # ORM name matches fastapi-users; physical column remains hashed_pw (TASK-04).
+    hashed_password = Column("hashed_pw", String(500), nullable=False)
     role = Column(String(20), nullable=False, default="user")
     is_active = Column(Boolean, nullable=False, default=True)
+    is_superuser = Column(Boolean, nullable=False, default=False)
+    is_verified = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
