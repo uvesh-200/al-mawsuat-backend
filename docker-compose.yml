@@ -71,8 +71,10 @@ services:
     env_file:
       - .env
     environment:
-      # Override host-only .env URLs so the app and one-off commands (e.g. alembic) reach Postgres on the compose network.
+      # Override host-only .env URLs so the app and one-off commands (e.g. alembic) reach services on the compose network.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
     depends_on:
       - postgres
       - redis

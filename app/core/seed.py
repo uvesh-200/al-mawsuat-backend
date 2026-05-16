@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 
 from fastapi_users.password import PasswordHelper
 from pwdlib import PasswordHash
@@ -16,11 +15,11 @@ from app.models.tables import User
 
 
 async def seed_superadmin() -> None:
-    email = os.environ.get("SUPERADMIN_EMAIL", "superadmin@al-mawsuat.local")
-    password = os.environ.get("SUPERADMIN_PASSWORD")
+    email = settings.SUPERADMIN_EMAIL
+    password = settings.SUPERADMIN_PASSWORD
     if not password:
         raise SystemExit(
-            "Set SUPERADMIN_PASSWORD in the environment before running this script."
+            "Set SUPERADMIN_PASSWORD in .env or environment before running this script."
         )
 
     helper = PasswordHelper(PasswordHash((BcryptHasher(),)))

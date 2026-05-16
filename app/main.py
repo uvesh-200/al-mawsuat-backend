@@ -1,10 +1,21 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.config import settings
+from app.storage.minio_client import storage
 
-app = FastAPI(title="Al-Mawsu'at al-Deobandiyyah API")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    await storage.ensure_buckets()
+    yield
+
+
+app = FastAPI(title="Al-Mawsu'at al-Deobandiyyah API", lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(admin_router)

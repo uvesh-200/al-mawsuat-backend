@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Al-Mawsuat API",
+  "type": "collection",
+  "ignore": [
+    "*.json",
+    "environments/*"
+  ]
+}

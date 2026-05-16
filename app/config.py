@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    SUPERADMIN_EMAIL: str = "superadmin@al-mawsuat.local"
+    SUPERADMIN_PASSWORD: str = ""
+
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
     SENTRY_DSN: str = ""
