@@ -63,6 +63,16 @@ services:
       - "9000:9000"
       - "9001:9001"
 
+  embedding_server:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - mawsuat_network
+    expose:
+      - "8001"
+
   fastapi:
     build:
       context: .
@@ -75,16 +85,44 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
+      EMBEDDING_SERVER_URL: http://embedding_server:8001
+      QDRANT_HOST: qdrant
+      MEILISEARCH_URL: http://meilisearch:7700
     depends_on:
       - postgres
       - redis
       - qdrant
       - meilisearch
       - minio
+      - embedding_server
     networks:
       - mawsuat_network
     expose:
       - "8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      EMBEDDING_SERVER_URL: http://embedding_server:8001
+      QDRANT_HOST: qdrant
+      MEILISEARCH_URL: http://meilisearch:7700
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+      - meilisearch
+      - minio
+      - embedding_server
+    networks:
+      - mawsuat_network
 
   nginx:
     image: nginx:alpine

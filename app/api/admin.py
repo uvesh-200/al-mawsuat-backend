@@ -1,15 +1,8 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
-
-from app.core.auth import get_current_user
-from app.models.tables import User
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-@router.get("/books")
-async def list_books_placeholder(
-    _: Annotated[User, Depends(get_current_user)],
-) -> dict:
-    return {"items": []}
+@router.get("/ping")
+async def ping() -> dict:
+    return {"status": "ok"}

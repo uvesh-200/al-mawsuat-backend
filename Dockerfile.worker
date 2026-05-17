@@ -6,8 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \
-      libpq-dev \
+      tesseract-ocr \
+      tesseract-ocr-ara \
+      tesseract-ocr-urd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
@@ -15,4 +16,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
 
-CMD ["bash", "-lc", "python -c \"print('worker image built')\" && sleep infinity"]
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+CMD ["celery", "-A", "workers.celery_worker", "worker", "--loglevel=info", "--concurrency=1"]

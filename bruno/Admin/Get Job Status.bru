@@ -1,11 +1,11 @@
 meta {
-  name: List Books
+  name: Get Job Status
   type: http
-  seq: 4
+  seq: 3
 }
 
 get {
-  url: {{base_url}}/admin/books
+  url: {{base_url}}/admin/jobs/{{job_id}}
   body: none
   auth: none
 }

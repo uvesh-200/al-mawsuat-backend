@@ -1,11 +1,11 @@
 meta {
-  name: List Books
+  name: Delete Book
   type: http
-  seq: 4
+  seq: 2
 }
 
-get {
-  url: {{base_url}}/admin/books
+delete {
+  url: {{base_url}}/admin/books/{{book_id}}
   body: none
   auth: none
 }
