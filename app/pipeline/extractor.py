@@ -1,3 +1,6 @@
+from collections.abc import Generator
+from contextlib import contextmanager
+
 import fitz
 import pytesseract
 from PIL import Image
@@ -28,13 +31,29 @@ def _words_from_tesseract(page: fitz.Page) -> list[dict]:
     return words
 
 
-def extract(pdf_bytes: bytes) -> list[dict]:
+def extract_page(page: fitz.Page, page_num: int) -> dict:
+    words = _words_from_fitz(page)
+    if len(words) < WORD_THRESHOLD:
+        words = _words_from_tesseract(page)
+    return {"page_num": page_num, "words": words}
+
+
+@contextmanager
+def open_pdf(pdf_bytes: bytes) -> Generator[fitz.Document, None, None]:
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    try:
+        yield doc
+    finally:
+        doc.close()
+
+
+def extract(pdf_bytes: bytes, progress_callback=None) -> list[dict]:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     results = []
+    total = len(doc)
     for page_num, page in enumerate(doc, start=1):
-        words = _words_from_fitz(page)
-        if len(words) < WORD_THRESHOLD:
-            words = _words_from_tesseract(page)
-        results.append({"page_num": page_num, "words": words})
+        results.append(extract_page(page, page_num))
+        if progress_callback:
+            progress_callback(page_num, total)
     doc.close()
     return results

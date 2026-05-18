@@ -64,10 +64,30 @@ async def _get_book(book_id: str) -> Book | None:
 
 
 async def _process_book_async(book_id: str, minio_path: str, tenant_id: str) -> None:
-    # Step 1: extracting
-    await _update_job(book_id, status="extracting", progress_pct=10, current_step="extracting")
+    # Step 1: extracting (with per-page progress updates)
     pdf_bytes = await storage.get_file(settings.MINIO_BUCKET_BOOKS, minio_path)
-    pages = await asyncio.to_thread(extract, pdf_bytes)
+    progress = {"current": 0, "total": 0}
+
+    def _on_page_done(current: int, total: int) -> None:
+        progress["current"] = current
+        progress["total"] = total
+
+    extract_coro = asyncio.to_thread(extract, pdf_bytes, _on_page_done)
+    extract_task = asyncio.ensure_future(extract_coro)
+
+    while not extract_task.done():
+        if progress["total"] > 0:
+            pct = 10 + int((progress["current"] / progress["total"]) * 15)
+            step = f"extracting ({progress['current']}/{progress['total']})"
+            await _update_job(book_id, status="extracting", progress_pct=pct, current_step=step)
+        await asyncio.sleep(2)
+
+    pages = extract_task.result()
+    total_pages = len(pages)
+    async with AsyncSessionLocal() as session:
+        stmt = update(Book).where(Book.id == book_id).values(total_pages=total_pages)
+        await session.execute(stmt)
+        await session.commit()
 
     # Step 2: chunking
     await _update_job(book_id, status="chunking", progress_pct=30, current_step="chunking")
@@ -77,11 +97,6 @@ async def _process_book_async(book_id: str, minio_path: str, tenant_id: str) -> 
     book = await _get_book(book_id)
     if book is None:
         raise ValueError(f"Book {book_id} not found")
-    total_pages = len(pages)
-    async with AsyncSessionLocal() as session:
-        stmt = update(Book).where(Book.id == book_id).values(total_pages=total_pages)
-        await session.execute(stmt)
-        await session.commit()
 
     for chunk in chunks:
         chunk["book_id"] = str(book.id)
@@ -108,6 +123,24 @@ async def _process_book_async(book_id: str, minio_path: str, tenant_id: str) -> 
     await _update_job(book_id, status="completed", progress_pct=100, current_step="completed")
 
 
+async def _run_with_cleanup(book_id: str, minio_path: str, tenant_id: str) -> None:
+    from app.models.db import engine as _engine
+
+    try:
+        await _process_book_async(book_id, minio_path, tenant_id)
+    except Exception as exc:
+        await _update_job(
+            book_id,
+            status="failed",
+            progress_pct=0,
+            current_step="failed",
+            error_msg=f"{type(exc).__name__}: {exc}",
+        )
+        raise
+    finally:
+        await _engine.dispose()
+
+
 @celery_app.task(bind=True, max_retries=0, acks_late=True)
 def process_book(
     self,
@@ -115,21 +148,4 @@ def process_book(
     minio_path: str,
     tenant_id: str = settings.DEFAULT_TENANT_ID,
 ) -> None:
-    try:
-        asyncio.run(_process_book_async(book_id, minio_path, tenant_id))
-    except Exception as exc:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(
-                _update_job(
-                    book_id,
-                    status="failed",
-                    progress_pct=0,
-                    current_step="failed",
-                    error_msg=str(exc),
-                )
-            )
-        finally:
-            loop.close()
-        raise
+    asyncio.run(_run_with_cleanup(book_id, minio_path, tenant_id))
