@@ -1,0 +1,44 @@
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchValue
+
+from app.config import settings
+
+QDRANT_COLLECTION = "documents"
+
+
+async def vector_search(
+    vector: list[float],
+    tenant_id: str,
+    top_k: int = 20,
+) -> list[dict]:
+    client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
+    try:
+        results = await client.search(
+            collection_name=QDRANT_COLLECTION,
+            query_vector=vector,
+            limit=top_k,
+            query_filter=Filter(
+                must=[
+                    FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id)),
+                ]
+            ),
+            with_payload=True,
+        )
+    finally:
+        await client.close()
+
+    return [
+        {
+            "text": r.payload.get("text", ""),
+            "book_name": r.payload.get("book_name", ""),
+            "author": r.payload.get("author", ""),
+            "page_start": r.payload.get("page_start"),
+            "chapter": r.payload.get("chapter"),
+            "bbox": r.payload.get("bbox"),
+            "minio_path": r.payload.get("minio_path"),
+            "score": r.score,
+            "book_id": r.payload.get("book_id"),
+            "book_type": r.payload.get("book_type"),
+        }
+        for r in results
+    ]

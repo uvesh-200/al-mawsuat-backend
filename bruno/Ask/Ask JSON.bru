@@ -1,0 +1,21 @@
+meta {
+  name: Ask JSON
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/ask
+  body: json
+  auth: bearer {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "question": "ما حكم الربا؟"
+  }
+}

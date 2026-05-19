@@ -1,0 +1,11 @@
+meta {
+  name: Check Qdrant - Collection Stats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{qdrant_url}}/collections/{{qdrant_collection}}
+  body: none
+  auth: none
+}

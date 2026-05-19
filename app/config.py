@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     EMBEDDING_SERVER_URL: str = "http://embedding_server:8001"
     VLLM_BASE_URL: str = "http://vllm:8003/v1"
-    VLLM_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.3"
+    VLLM_MODEL: str = "Qwen/Qwen2.5-0.5B-Instruct"
     NLLB_SERVER_URL: str = "http://translation_server:8002"
 
     JWT_SECRET_KEY: str

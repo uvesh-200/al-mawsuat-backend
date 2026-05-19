@@ -1,7 +1,7 @@
 fastapi==0.111.0
 uvicorn[standard]==0.30.0
 gunicorn==22.0.0
-pydantic==2.7.0
+pydantic>=2.7.4,<3.0.0
 pydantic-settings==2.2.0
 python-multipart==0.0.9
 sqlalchemy[asyncio]==2.0.30
@@ -13,6 +13,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 langgraph==0.1.5
 langchain-core==0.2.0
+langsmith>=0.1.100,<0.2.0
 openai==1.30.0
 langdetect==1.0.9
 qdrant-client==1.9.1
@@ -29,5 +30,7 @@ sentry-sdk[fastapi]==2.3.0
 pytest==8.2.0
 pytest-asyncio==0.23.6
 httpx==0.27.0
+sentence-transformers==3.0.1
+transformers<4.57
 black==24.4.2
 ruff==0.4.4

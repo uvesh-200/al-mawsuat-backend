@@ -1,0 +1,15 @@
+meta {
+  name: Index Stats
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{meilisearch_url}}/indexes/documents/stats
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{meilisearch_key}}
+}

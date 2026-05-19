@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.admin import router as admin_router
+from app.api.ask import router as ask_router
 from app.api.auth import router as auth_router
 from app.api.books import router as books_router
 from app.api.jobs import router as jobs_router
@@ -21,6 +22,7 @@ app = FastAPI(title="Al-Mawsu'at al-Deobandiyyah API", lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(ask_router)
 app.include_router(books_router)
 app.include_router(jobs_router)
 
