@@ -4,7 +4,7 @@ import uuid
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,10 +38,10 @@ class UploadOut(BaseModel):
 @router.post("/upload", response_model=UploadOut, status_code=status.HTTP_201_CREATED)
 async def upload_book(
     file: UploadFile,
-    title: str,
-    author: str = "",
-    language: str = "ar",
-    book_type: str = "",
+    title: str = Form(...),
+    author: str = Form(""),
+    language: str = Form("ar"),
+    book_type: str = Form(""),
     user: Annotated[User, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_db)] = None,
 ) -> UploadOut:
@@ -148,7 +148,11 @@ async def _delete_from_meilisearch(book_id: str) -> None:
     client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY)
     try:
         resp = client.index("documents").search(
-            "", filter=[f"book_id={book_id}"], limit=1000
+            "",
+            opt_params={
+                "filter": [f"book_id={book_id}"],
+                "limit": 1000,
+            },
         )
         ids = [h["id"] for h in resp.get("hits", [])]
         if ids:

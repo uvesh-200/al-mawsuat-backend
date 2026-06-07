@@ -100,12 +100,14 @@ def _split_chunks(
     strategy: str,
 ) -> list[list[dict]]:
     if strategy == "hadith":
-        return _split_hadith(words, lines)
-    if strategy == "quran":
-        return _split_quran(words, lines)
-    if strategy == "fiqh":
-        return _split_fiqh(words, lines)
-    return _split_fallback(words)
+        chunks = _split_hadith(words, lines)
+    elif strategy == "quran":
+        chunks = _split_quran(words, lines)
+    elif strategy == "fiqh":
+        chunks = _split_fiqh(words, lines)
+    else:
+        chunks = _split_fallback(words)
+    return _enforce_hard_ceiling(chunks)
 
 
 def _split_hadith(words: list[dict], lines: list[list[dict]]) -> list[list[dict]]:

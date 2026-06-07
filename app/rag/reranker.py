@@ -33,7 +33,7 @@ def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dict]:
         return []
 
     pairs = [(question, r["text"]) for r in fused_top]
-    scores = _cross_encoder.predict(pairs, activation_fn="sigmoid")
+    scores = _cross_encoder.predict(pairs, apply_softmax=True)
 
     for r, s in zip(fused_top, scores):
         r["score"] = float(s)

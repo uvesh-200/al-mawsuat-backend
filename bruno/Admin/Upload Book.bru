@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{base_url}}/admin/books/upload?title=Test+Book&author=Test+Author&language=ar&book_type=fiqh
+  url: {{base_url}}/admin/books/upload
   body: multipartForm
   auth: none
 }
@@ -16,4 +16,8 @@ headers {
 
 body:multipart-form {
   file: @file(/path/to/book.pdf)
+  title: Test Book
+  author: Test Author
+  language: ar
+  book_type: fiqh
 }

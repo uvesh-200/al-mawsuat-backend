@@ -79,12 +79,19 @@ async def list_models() -> dict:
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatCompletionRequest) -> ChatCompletionResponse:
     messages = [{"role": m.role, "content": m.content} for m in req.messages]
-    content = await asyncio.to_thread(
-        _generate,
-        messages,
-        req.temperature or 0.3,
-        req.max_tokens or 1024,
-    )
+    try:
+        content = await asyncio.to_thread(
+            _generate,
+            messages,
+            req.temperature or 0.3,
+            req.max_tokens or 1024,
+        )
+    except Exception as e:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"error": "LLM generation failed", "message": str(e)},
+        )
     return ChatCompletionResponse(
         id=f"chatcmpl-{uuid.uuid4().hex[:12]}",
         created=int(time.time()),

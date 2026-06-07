@@ -1,6 +1,10 @@
+import logging
+
 import meilisearch
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 MEILISEARCH_INDEX = "documents"
 
@@ -10,12 +14,19 @@ async def keyword_search(
     tenant_id: str,
     top_k: int = 20,
 ) -> list[dict]:
-    client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY)
-    results = client.index(MEILISEARCH_INDEX).search(
-        query,
-        filter=[f"tenant_id = {tenant_id}"],
-        limit=top_k,
-    )
+    try:
+        client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY, timeout=10)
+        results = client.index(MEILISEARCH_INDEX).search(
+            query,
+            opt_params={
+                "filter": [f"tenant_id = {tenant_id}"],
+                "limit": top_k,
+            },
+        )
+        hits = results.get("hits", [])
+    except Exception:
+        logger.exception("Meilisearch keyword search failed")
+        return []
 
     return [
         {
@@ -30,5 +41,5 @@ async def keyword_search(
             "book_id": h.get("book_id"),
             "book_type": h.get("book_type"),
         }
-        for h in results.get("hits", [])
+        for h in hits
     ]

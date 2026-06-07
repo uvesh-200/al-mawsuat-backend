@@ -1,11 +1,17 @@
 import asyncio
+import logging
+import threading
 
 import numpy as np
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
-BATCH_SIZE = 25
+logger = logging.getLogger(__name__)
+
+BATCH_SIZE = 10
+_encode_lock = threading.Lock()
 
 app = FastAPI(title="Embedding Server")
 
@@ -21,13 +27,14 @@ class EmbedResponse(BaseModel):
 
 
 def _encode(texts: list[str]) -> list[list[float]]:
-    all_vectors: list[np.ndarray] = []
-    for start in range(0, len(texts), BATCH_SIZE):
-        batch = texts[start : start + BATCH_SIZE]
-        vecs = model.encode(batch, normalize_embeddings=True)
-        all_vectors.append(vecs)
-    result = np.concatenate(all_vectors, axis=0)
-    return result.tolist()
+    with _encode_lock:
+        all_vectors: list[np.ndarray] = []
+        for start in range(0, len(texts), BATCH_SIZE):
+            batch = texts[start : start + BATCH_SIZE]
+            vecs = model.encode(batch, normalize_embeddings=True)
+            all_vectors.append(vecs)
+        result = np.concatenate(all_vectors, axis=0)
+        return result.tolist()
 
 
 @app.get("/health")
@@ -37,5 +44,12 @@ async def health() -> dict:
 
 @app.post("/embed", response_model=EmbedResponse)
 async def embed(req: EmbedRequest) -> EmbedResponse:
-    vectors = await asyncio.to_thread(_encode, req.texts)
-    return EmbedResponse(vectors=vectors)
+    try:
+        vectors = await asyncio.to_thread(_encode, req.texts)
+        return EmbedResponse(vectors=vectors)
+    except Exception as e:
+        logger.exception("Embedding failed")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Embedding failed", "message": str(e)},
+        )

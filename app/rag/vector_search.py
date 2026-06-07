@@ -1,7 +1,11 @@
+import logging
+
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 QDRANT_COLLECTION = "documents"
 
@@ -24,6 +28,9 @@ async def vector_search(
             ),
             with_payload=True,
         )
+    except Exception:
+        logger.exception("Qdrant vector search failed")
+        return []
     finally:
         await client.close()
 

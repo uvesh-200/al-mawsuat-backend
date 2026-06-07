@@ -7,13 +7,17 @@ meta {
 get {
   url: {{base_url}}/admin/jobs/{{job_id}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Authorization: Bearer {{access_token}}
 }
 
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ZWM5NzFkMi1lOWRhLTQ2NjYtYjg2ZS1hNzdhMGRkZDgwMzEiLCJhdWQiOlsiZmFzdGFwaS11c2VyczphdXRoIl0sInRlbmFudF9pZCI6ImRlZmF1bHQiLCJyb2xlIjoic3VwZXJhZG1pbiIsImV4cCI6MTc4MDIyMDc4N30.UAX_R9UW2dgFC0yyiM8CdVahPYjYkV0mCxDb7kFpRYo
+}
+
 vars:pre-request {
-  job_id: f40b2294-c8b4-4717-8417-bf64586d05f9
+  job_id: 9dda88bc-f048-43c0-b126-775a67939690
 }

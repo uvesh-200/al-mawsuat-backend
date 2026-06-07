@@ -44,7 +44,6 @@ def _build_source(
         book_type=s.get("book_type"),
         chapter=s.get("chapter"),
         page=page,
-        original_text=s.get("text", ""),
         relevance_score=s.get("score", 0.0),
         bbox=bbox_list,
         highlight_url=highlight_url,

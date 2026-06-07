@@ -1,0 +1,15 @@
+meta {
+  name: Admin Ping
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/admin/ping
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

@@ -12,8 +12,28 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - mawsuat_network
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "20"
+      AUTH_TYPE: scram-sha-256
+    depends_on:
+      - postgres
+    networks:
+      - mawsuat_network
+    expose:
+      - "5432"
 
   redis:
     image: redis:7-alpine
@@ -112,7 +132,7 @@ services:
       - .env
     environment:
       # Override host-only .env URLs so the app and one-off commands (e.g. alembic) reach services on the compose network.
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       EMBEDDING_SERVER_URL: http://embedding_server:8001
@@ -122,6 +142,7 @@ services:
       MEILISEARCH_URL: http://meilisearch:7700
     depends_on:
       - postgres
+      - pgbouncer
       - redis
       - qdrant
       - meilisearch
@@ -142,7 +163,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       EMBEDDING_SERVER_URL: http://embedding_server:8001
@@ -152,6 +173,7 @@ services:
       MEILISEARCH_URL: http://meilisearch:7700
     depends_on:
       - postgres
+      - pgbouncer
       - redis
       - qdrant
       - meilisearch
