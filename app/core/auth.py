@@ -76,3 +76,4 @@ async def get_user_manager(
 fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 
 get_current_user = fastapi_users.current_user(active=True)
+get_optional_current_user = fastapi_users.current_user(active=True, optional=True)

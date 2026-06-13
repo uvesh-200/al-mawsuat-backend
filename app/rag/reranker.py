@@ -1,9 +1,12 @@
+import asyncio
+from functools import partial
+
 from sentence_transformers import CrossEncoder
 
 _cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
-def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dict]:
+async def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dict]:
     if not results:
         return []
 
@@ -33,7 +36,10 @@ def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dict]:
         return []
 
     pairs = [(question, r["text"]) for r in fused_top]
-    scores = _cross_encoder.predict(pairs, apply_softmax=True)
+    loop = asyncio.get_running_loop()
+    scores = await loop.run_in_executor(
+        None, partial(_cross_encoder.predict, pairs, apply_softmax=True)
+    )
 
     for r, s in zip(fused_top, scores):
         r["score"] = float(s)

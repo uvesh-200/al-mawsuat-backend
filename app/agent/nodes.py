@@ -30,6 +30,7 @@ def _get_llm_client() -> AsyncOpenAI:
 class AgentState(TypedDict):
     question: str
     tenant_id: str
+    language: str | None
     passages: list[dict]
     best_score: float
     retry_count: int
@@ -82,7 +83,7 @@ async def retrieve_node(state: AgentState) -> dict:
     question = state["question"]
     tenant_id = state["tenant_id"]
 
-    lang = await detect_language(question)
+    lang = state.get("language") or await detect_language(question)
     arabic_query = await translate_for_retrieval(question, lang)
 
     try:
@@ -105,7 +106,7 @@ async def retrieve_node(state: AgentState) -> dict:
         ks = []
 
     combined = vs + ks
-    reranked = rerank(question, combined, top_k=5)
+    reranked = await rerank(question, combined, top_k=5)
 
     best_score = reranked[0]["score"] if reranked else 0.0
 

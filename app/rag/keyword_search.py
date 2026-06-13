@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import meilisearch
@@ -15,14 +16,19 @@ async def keyword_search(
     top_k: int = 20,
 ) -> list[dict]:
     try:
-        client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY, timeout=10)
-        results = client.index(MEILISEARCH_INDEX).search(
-            query,
-            opt_params={
-                "filter": [f"tenant_id = {tenant_id}"],
-                "limit": top_k,
-            },
-        )
+        loop = asyncio.get_running_loop()
+
+        def _search() -> dict:
+            client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY, timeout=10)
+            return client.index(MEILISEARCH_INDEX).search(
+                query,
+                opt_params={
+                    "filter": [f"tenant_id = {tenant_id}"],
+                    "limit": top_k,
+                },
+            )
+
+        results = await loop.run_in_executor(None, _search)
         hits = results.get("hits", [])
     except Exception:
         logger.exception("Meilisearch keyword search failed")

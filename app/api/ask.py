@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agent.rag_agent import rag_graph
-from app.core.auth import get_current_user
+from app.core.auth import get_optional_current_user
 from app.models.schemas import AnswerResponse, SourceItem
 from app.models.tables import User
 from app.rag.cache import get_cached_answer, set_cached_answer
@@ -17,20 +18,31 @@ router = APIRouter(prefix="/ask", tags=["ask"])
 
 
 class AskRequest(BaseModel):
-    question: str = Field(min_length=1)
+    question: str = Field(min_length=1, max_length=4096)
     language: str | None = None
 
 
 def _build_source(
     s: dict, rank: int, tenant_id: str
 ) -> SourceItem:
-    bbox = s.get("bbox")
+    bbox_raw = s.get("bbox")
     bbox_list: list[float] | None = None
-    if bbox and isinstance(bbox, (list, tuple)):
-        bbox_list = [float(v) for v in bbox]
+    if bbox_raw is not None:
+        if isinstance(bbox_raw, str):
+            parts = bbox_raw.split(",")
+            if len(parts) == 4:
+                try:
+                    bbox_list = [float(v) for v in parts]
+                except (ValueError, TypeError):
+                    bbox_list = None
+        elif isinstance(bbox_raw, (list, tuple)):
+            try:
+                bbox_list = [float(v) for v in bbox_raw]
+            except (ValueError, TypeError):
+                bbox_list = None
 
     highlight_url = None
-    book_id = s.get("book_id", "")
+    book_id = str(s.get("book_id") or "")
     page = s.get("page_start")
     if book_id and page is not None and bbox_list and len(bbox_list) == 4:
         bbox_str = f"{bbox_list[0]},{bbox_list[1]},{bbox_list[2]},{bbox_list[3]}"
@@ -50,10 +62,11 @@ def _build_source(
     )
 
 
-def _initial_state(question: str, tenant_id: str) -> dict:
+def _initial_state(question: str, tenant_id: str, language: str | None = None) -> dict:
     return {
         "question": question,
         "tenant_id": tenant_id,
+        "language": language,
         "passages": [],
         "best_score": 0.0,
         "retry_count": 0,
@@ -67,9 +80,9 @@ def _initial_state(question: str, tenant_id: str) -> dict:
 @router.post("", response_model=AnswerResponse)
 async def ask_json(
     body: AskRequest,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ) -> AnswerResponse:
-    tenant_id = user.tenant_id
+    tenant_id = user.tenant_id if user else "default"
     question = body.question
 
     cached = await get_cached_answer(tenant_id, question)
@@ -86,7 +99,13 @@ async def ask_json(
             sources=sources,
         )
 
-    result = await rag_graph.ainvoke(_initial_state(question, tenant_id))
+    try:
+        result = await asyncio.wait_for(
+            rag_graph.ainvoke(_initial_state(question, tenant_id, body.language)),
+            timeout=120.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Request timed out after 120 seconds")
     answer = result.get("answer", "")
     no_result = result.get("no_result", False)
     raw_sources = result.get("sources", [])
@@ -114,9 +133,16 @@ async def ask_json(
 @router.get("/stream")
 async def ask_stream(
     question: str,
-    user: Annotated[User, Depends(get_current_user)],
+    language: str | None = None,
+    user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ):
-    tenant_id = user.tenant_id
+    tenant_id = user.tenant_id if user else "default"
+
+    if len(question) > 4096:
+        return StreamingResponse(
+            iter([f"data: {json.dumps({'type': 'error', 'content': 'Question too long (max 4096 characters)'})}\n\n"]),
+            media_type="text/event-stream",
+        )
 
     cached = await get_cached_answer(tenant_id, question)
     if cached is not None:
@@ -125,7 +151,18 @@ async def ask_stream(
         raw_sources = cached.get("sources", [])
         was_cached = True
     else:
-        result = await rag_graph.ainvoke(_initial_state(question, tenant_id))
+        try:
+            result = await asyncio.wait_for(
+                rag_graph.ainvoke(_initial_state(question, tenant_id, language)),
+                timeout=120.0,
+            )
+        except asyncio.TimeoutError:
+            error_data = json.dumps({"type": "error", "content": "Request timed out after 120 seconds"})
+            done_data = json.dumps({"type": "done"})
+            return StreamingResponse(
+                iter([f"data: {error_data}\n\ndata: {done_data}\n\n"]),
+                media_type="text/event-stream",
+            )
         answer = result.get("answer", "")
         no_result = result.get("no_result", False)
         raw_sources = result.get("sources", [])

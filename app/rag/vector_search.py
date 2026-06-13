@@ -9,13 +9,22 @@ logger = logging.getLogger(__name__)
 
 QDRANT_COLLECTION = "documents"
 
+_client: AsyncQdrantClient | None = None
+
+
+def _get_client() -> AsyncQdrantClient:
+    global _client
+    if _client is None:
+        _client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
+    return _client
+
 
 async def vector_search(
     vector: list[float],
     tenant_id: str,
     top_k: int = 20,
 ) -> list[dict]:
-    client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
+    client = _get_client()
     try:
         results = await client.search(
             collection_name=QDRANT_COLLECTION,
@@ -31,8 +40,6 @@ async def vector_search(
     except Exception:
         logger.exception("Qdrant vector search failed")
         return []
-    finally:
-        await client.close()
 
     return [
         {
