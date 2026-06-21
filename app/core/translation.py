@@ -11,7 +11,7 @@ TRANSLATION_SERVER_URL = settings.NLLB_SERVER_URL
 
 async def detect_language(text: str) -> str:
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 f"{TRANSLATION_SERVER_URL}/detect",
                 json={"text": text},

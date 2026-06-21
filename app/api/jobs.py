@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.auth import get_current_user
 from app.models.db import get_db
 from app.models.tables import ProcessingJob, User
@@ -23,6 +24,32 @@ class JobOut(BaseModel):
     error_msg: str | None
     started_at: str | None
     finished_at: str | None
+
+
+@router.get("/active")
+async def list_jobs(
+    user: Annotated[User, Depends(get_current_user)] = None,
+    session: Annotated[AsyncSession, Depends(get_db)] = None,
+) -> list[JobOut]:
+    result = await session.execute(
+        select(ProcessingJob)
+        .where(ProcessingJob.tenant_id == settings.DEFAULT_TENANT_ID)
+        .order_by(ProcessingJob.created_at.desc())
+    )
+    jobs = result.scalars().all()
+    return [
+        JobOut(
+            id=str(j.id),
+            book_id=str(j.book_id),
+            status=j.status,
+            progress_pct=j.progress_pct,
+            current_step=j.current_step,
+            error_msg=j.error_msg,
+            started_at=j.started_at.isoformat() if j.started_at else None,
+            finished_at=j.finished_at.isoformat() if j.finished_at else None,
+        )
+        for j in jobs
+    ]
 
 
 @router.get("/{job_id}")

@@ -22,7 +22,7 @@ def _get_llm_client() -> AsyncOpenAI:
         _llm_client = AsyncOpenAI(
             base_url=settings.VLLM_BASE_URL,
             api_key="not-needed",
-            timeout=120.0,
+            timeout=240.0,
         )
     return _llm_client
 
@@ -38,6 +38,7 @@ class AgentState(TypedDict):
     sources: list[dict]
     no_result: bool
     streaming: bool
+    embed_failed: bool
 
 
 MAX_PASSAGE_TOKENS = 800
@@ -86,26 +87,32 @@ async def retrieve_node(state: AgentState) -> dict:
     lang = state.get("language") or await detect_language(question)
     arabic_query = await translate_for_retrieval(question, lang)
 
+    embed_failed = False
     try:
         vector = await embed_query(arabic_query, tenant_id)
     except Exception:
         logger.exception("embed_query failed")
-        return {"passages": [], "best_score": 0.0}
+        embed_failed = True
+        vector = None
 
-    vs, ks = await asyncio.gather(
-        vector_search(vector, tenant_id, top_k=20),
-        keyword_search(arabic_query, tenant_id, top_k=20),
-        return_exceptions=True,
-    )
+    if vector is not None:
+        vs, ks = await asyncio.gather(
+            vector_search(vector, tenant_id, top_k=20),
+            keyword_search(arabic_query, tenant_id, top_k=20),
+            return_exceptions=True,
+        )
 
-    if isinstance(vs, Exception):
-        logger.error("vector_search failed: %s", vs)
-        vs = []
-    if isinstance(ks, Exception):
-        logger.error("keyword_search failed: %s", ks)
-        ks = []
+        if isinstance(vs, Exception):
+            logger.error("vector_search failed: %s", vs)
+            vs = []
+        if isinstance(ks, Exception):
+            logger.error("keyword_search failed: %s", ks)
+            ks = []
 
-    combined = vs + ks
+        combined = vs + ks
+    else:
+        combined = []
+
     reranked = await rerank(question, combined, top_k=5)
 
     best_score = reranked[0]["score"] if reranked else 0.0
@@ -113,12 +120,15 @@ async def retrieve_node(state: AgentState) -> dict:
     return {
         "passages": reranked,
         "best_score": best_score,
+        "embed_failed": embed_failed,
     }
 
 
 def quality_check_node(state: AgentState) -> str:
     if state["best_score"] >= 0.35:
         return "generate"
+    if state.get("embed_failed"):
+        return "no_result"
     if state["retry_count"] < 1:
         return "retry"
     return "no_result"
@@ -164,7 +174,7 @@ async def generate_node(state: AgentState) -> dict:
                 {"role": "user", "content": state["question"]},
             ],
             temperature=0.3,
-            max_tokens=1024,
+            max_tokens=512,
         )
         answer = resp.choices[0].message.content or ""
     except Exception:
@@ -193,6 +203,16 @@ async def generate_node(state: AgentState) -> dict:
 
 
 def no_result_node(state: AgentState) -> dict:
+    if state.get("embed_failed"):
+        return {
+            "answer": "The search service is temporarily unavailable due to high load on the CPU-based embedding server. Please try again in a few minutes.",
+            "no_result": True,
+        }
+    if state.get("retry_count", 0) > 0:
+        return {
+            "answer": "After multiple attempts, no relevant information was found in the provided sources. Try rephrasing your question.",
+            "no_result": True,
+        }
     return {
         "answer": "No relevant information found in the provided sources.",
         "no_result": True,

@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.config import settings
 from app.models.db import Base
@@ -74,6 +74,10 @@ class ProcessingJob(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    checkpoint = Column(JSONB, nullable=True)
+    heartbeat_at = Column(DateTime(timezone=True), nullable=True)
+    task_id = Column(String(100), nullable=True)
+    retry_count = Column(Integer, nullable=False, default=0)
 
 
 class RefreshToken(Base):

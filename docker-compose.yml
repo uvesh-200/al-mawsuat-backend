@@ -184,6 +184,30 @@ services:
     networks:
       - mawsuat_network
 
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      EMBEDDING_SERVER_URL: http://embedding_server:8001
+      NLLB_SERVER_URL: http://translation_server:8002
+      VLLM_BASE_URL: http://llm_server:8003/v1
+      QDRANT_HOST: qdrant
+      MEILISEARCH_URL: http://meilisearch:7700
+    command: ["celery", "-A", "workers.celery_worker", "beat", "--loglevel=info"]
+    depends_on:
+      - postgres
+      - pgbouncer
+      - redis
+    networks:
+      - mawsuat_network
+
   nginx:
     image: nginx:alpine
     restart: unless-stopped

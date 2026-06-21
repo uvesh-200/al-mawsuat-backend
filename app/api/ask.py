@@ -74,6 +74,7 @@ def _initial_state(question: str, tenant_id: str, language: str | None = None) -
         "sources": [],
         "no_result": False,
         "streaming": False,
+        "embed_failed": False,
     }
 
 
@@ -102,10 +103,10 @@ async def ask_json(
     try:
         result = await asyncio.wait_for(
             rag_graph.ainvoke(_initial_state(question, tenant_id, body.language)),
-            timeout=120.0,
+            timeout=280.0,
         )
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Request timed out after 120 seconds")
+        raise HTTPException(status_code=504, detail="Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration.")
     answer = result.get("answer", "")
     no_result = result.get("no_result", False)
     raw_sources = result.get("sources", [])
@@ -154,10 +155,10 @@ async def ask_stream(
         try:
             result = await asyncio.wait_for(
                 rag_graph.ainvoke(_initial_state(question, tenant_id, language)),
-                timeout=120.0,
+                timeout=280.0,
             )
         except asyncio.TimeoutError:
-            error_data = json.dumps({"type": "error", "content": "Request timed out after 120 seconds"})
+            error_data = json.dumps({"type": "error", "content": "Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration."})
             done_data = json.dumps({"type": "done"})
             return StreamingResponse(
                 iter([f"data: {error_data}\n\ndata: {done_data}\n\n"]),
