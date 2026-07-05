@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.agent.rag_agent import rag_graph
+from app.config import settings
 from app.core.auth import get_optional_current_user
+from app.core.redis import get_redis
 from app.models.schemas import AnswerResponse, SourceItem
 from app.models.tables import User
+from app.rag.agent import rag_graph
 from app.rag.cache import get_cached_answer, set_cached_answer
 
 router = APIRouter(prefix="/ask", tags=["ask"])
@@ -62,6 +66,32 @@ def _build_source(
     )
 
 
+async def _record_stats(
+    tenant_id: str, was_cached: bool, duration_ms: int
+) -> None:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    year_week = datetime.now(timezone.utc).strftime("%Y-%W")
+    try:
+        r = await get_redis()
+        await r.incr(f"stats:{tenant_id}:queries:{today}")
+        await r.expire(f"stats:{tenant_id}:queries:{today}", 172800)
+        await r.incr(f"stats:{tenant_id}:queries_week:{year_week}")
+        await r.expire(f"stats:{tenant_id}:queries_week:{year_week}", 1209600)
+        if was_cached:
+            await r.incr(f"stats:{tenant_id}:cache_hits:{today}")
+        else:
+            await r.incr(f"stats:{tenant_id}:cache_misses:{today}")
+        await r.expire(f"stats:{tenant_id}:cache_hits:{today}", 172800)
+        await r.expire(f"stats:{tenant_id}:cache_misses:{today}", 172800)
+        await r.incrby(f"stats:{tenant_id}:rt_sum:{today}", duration_ms)
+        await r.incr(f"stats:{tenant_id}:rt_count:{today}")
+        await r.expire(f"stats:{tenant_id}:rt_sum:{today}", 172800)
+        await r.expire(f"stats:{tenant_id}:rt_count:{today}", 172800)
+    except Exception:
+        logger = __import__("logging").getLogger(__name__)
+        logger.exception("Failed to record stats")
+
+
 def _initial_state(question: str, tenant_id: str, language: str | None = None) -> dict:
     return {
         "question": question,
@@ -85,6 +115,7 @@ async def ask_json(
 ) -> AnswerResponse:
     tenant_id = user.tenant_id if user else "default"
     question = body.question
+    start = time.monotonic()
 
     cached = await get_cached_answer(tenant_id, question)
     if cached is not None:
@@ -92,6 +123,8 @@ async def ask_json(
             _build_source(s, i + 1, tenant_id)
             for i, s in enumerate(cached.get("sources", []))
         ]
+        elapsed = int((time.monotonic() - start) * 1000)
+        await _record_stats(tenant_id, was_cached=True, duration_ms=elapsed)
         return AnswerResponse(
             question=question,
             answer=cached["answer"],
@@ -106,6 +139,8 @@ async def ask_json(
             timeout=280.0,
         )
     except asyncio.TimeoutError:
+        elapsed = int((time.monotonic() - start) * 1000)
+        await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
         raise HTTPException(status_code=504, detail="Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration.")
     answer = result.get("answer", "")
     no_result = result.get("no_result", False)
@@ -123,6 +158,9 @@ async def ask_json(
     }
     await set_cached_answer(tenant_id, question, cache_body)
 
+    elapsed = int((time.monotonic() - start) * 1000)
+    await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
+
     return AnswerResponse(
         question=question,
         answer=answer,
@@ -138,6 +176,7 @@ async def ask_stream(
     user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ):
     tenant_id = user.tenant_id if user else "default"
+    start = time.monotonic()
 
     if len(question) > 4096:
         return StreamingResponse(
@@ -151,6 +190,8 @@ async def ask_stream(
         no_result = cached.get("no_result", False)
         raw_sources = cached.get("sources", [])
         was_cached = True
+        elapsed = int((time.monotonic() - start) * 1000)
+        await _record_stats(tenant_id, was_cached=True, duration_ms=elapsed)
     else:
         try:
             result = await asyncio.wait_for(
@@ -158,6 +199,8 @@ async def ask_stream(
                 timeout=280.0,
             )
         except asyncio.TimeoutError:
+            elapsed = int((time.monotonic() - start) * 1000)
+            await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
             error_data = json.dumps({"type": "error", "content": "Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration."})
             done_data = json.dumps({"type": "done"})
             return StreamingResponse(
@@ -174,6 +217,8 @@ async def ask_stream(
             "sources": raw_sources,
         }
         await set_cached_answer(tenant_id, question, cache_body)
+        elapsed = int((time.monotonic() - start) * 1000)
+        await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
 
     sources = [
         _build_source(s, i + 1, tenant_id)

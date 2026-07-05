@@ -1,4 +1,4 @@
-"""One-off seed: create the first superadmin user. Run manually: `python -m app.core.seed`."""
+"""One-off seed: create the first superadmin user. Run: python -m app.seed"""
 
 from __future__ import annotations
 
@@ -18,9 +18,7 @@ async def seed_superadmin() -> None:
     email = settings.SUPERADMIN_EMAIL
     password = settings.SUPERADMIN_PASSWORD
     if not password:
-        raise SystemExit(
-            "Set SUPERADMIN_PASSWORD in .env or environment before running this script."
-        )
+        raise SystemExit("Set SUPERADMIN_PASSWORD in .env or environment before running this script.")
 
     helper = PasswordHelper(PasswordHash((BcryptHasher(),)))
     hashed = helper.hash(password)
@@ -30,18 +28,10 @@ async def seed_superadmin() -> None:
         if result.scalar_one_or_none() is not None:
             print("Superadmin email already exists; nothing to do.")
             return
-
-        session.add(
-            User(
-                email=email,
-                hashed_password=hashed,
-                tenant_id=settings.DEFAULT_TENANT_ID,
-                role="superadmin",
-                is_superuser=True,
-                is_verified=True,
-                is_active=True,
-            )
-        )
+        session.add(User(
+            email=email, hashed_password=hashed, tenant_id=settings.DEFAULT_TENANT_ID,
+            role="superadmin", is_superuser=True, is_verified=True, is_active=True,
+        ))
         await session.commit()
         print(f"Created superadmin user: {email}")
 

@@ -18,12 +18,16 @@ class StorageClient:
         )
 
     async def ensure_buckets(self) -> None:
-        for bucket in (settings.MINIO_BUCKET_BOOKS, settings.MINIO_BUCKET_HIGHLIGHTS):
-            exists = await asyncio.to_thread(
-                self._client.bucket_exists, bucket
-            )
-            if not exists:
-                await asyncio.to_thread(self._client.make_bucket, bucket)
+        try:
+            async with asyncio.timeout(15):
+                for bucket in (settings.MINIO_BUCKET_BOOKS, settings.MINIO_BUCKET_HIGHLIGHTS):
+                    exists = await asyncio.to_thread(
+                        self._client.bucket_exists, bucket
+                    )
+                    if not exists:
+                        await asyncio.to_thread(self._client.make_bucket, bucket)
+        except (TimeoutError, asyncio.TimeoutError):
+            pass
 
     async def upload_file(
         self, bucket: str, path: str, data: bytes, content_type: str
@@ -59,15 +63,6 @@ class StorageClient:
             return await self.get_file(bucket, path)
         except FileNotFoundError:
             return None
-
-    async def file_exists(self, bucket: str, path: str) -> bool:
-        try:
-            await asyncio.to_thread(self._client.stat_object, bucket, path)
-            return True
-        except S3Error as exc:
-            if exc.code == "NoSuchKey":
-                return False
-            raise
 
     async def delete_file(self, bucket: str, path: str) -> None:
         try:

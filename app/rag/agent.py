@@ -2,29 +2,29 @@ import asyncio
 import logging
 from typing import Annotated, TypedDict
 
+from langgraph.graph import END, StateGraph
 from openai import AsyncOpenAI
 
 from app.config import settings
+from app.core.embedder import embed_query
 from app.core.translation import detect_language, translate_for_retrieval
-from app.rag.embedder import embed_query
-from app.rag.keyword_search import keyword_search
 from app.rag.reranker import rerank
-from app.rag.vector_search import vector_search
+from app.rag.retriever import keyword_search, vector_search
 
 logger = logging.getLogger(__name__)
 
-_llm_client: AsyncOpenAI | None = None
+llm_client: AsyncOpenAI | None = None
 
 
 def _get_llm_client() -> AsyncOpenAI:
-    global _llm_client
-    if _llm_client is None:
-        _llm_client = AsyncOpenAI(
+    global llm_client
+    if llm_client is None:
+        llm_client = AsyncOpenAI(
             base_url=settings.VLLM_BASE_URL,
             api_key="not-needed",
             timeout=240.0,
         )
-    return _llm_client
+    return llm_client
 
 
 class AgentState(TypedDict):
@@ -83,13 +83,16 @@ def _format_passages(passages: list[dict]) -> str:
 async def retrieve_node(state: AgentState) -> dict:
     question = state["question"]
     tenant_id = state["tenant_id"]
-
     lang = state.get("language") or await detect_language(question)
     arabic_query = await translate_for_retrieval(question, lang)
 
+    embed_query_text = arabic_query
+    if lang != "ar" and arabic_query.strip() != question.strip():
+        embed_query_text = f"{question} {arabic_query}"
+
     embed_failed = False
     try:
-        vector = await embed_query(arabic_query, tenant_id)
+        vector = await embed_query(embed_query_text, tenant_id)
     except Exception:
         logger.exception("embed_query failed")
         embed_failed = True
@@ -101,27 +104,19 @@ async def retrieve_node(state: AgentState) -> dict:
             keyword_search(arabic_query, tenant_id, top_k=20),
             return_exceptions=True,
         )
-
         if isinstance(vs, Exception):
             logger.error("vector_search failed: %s", vs)
             vs = []
         if isinstance(ks, Exception):
             logger.error("keyword_search failed: %s", ks)
             ks = []
-
         combined = vs + ks
     else:
         combined = []
 
     reranked = await rerank(question, combined, top_k=5)
-
     best_score = reranked[0]["score"] if reranked else 0.0
-
-    return {
-        "passages": reranked,
-        "best_score": best_score,
-        "embed_failed": embed_failed,
-    }
+    return {"passages": reranked, "best_score": best_score, "embed_failed": embed_failed}
 
 
 def quality_check_node(state: AgentState) -> str:
@@ -139,12 +134,7 @@ async def retry_node(state: AgentState) -> dict:
     try:
         resp = await client.chat.completions.create(
             model=settings.VLLM_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Rephrase this question in Arabic: {state['question']}",
-                },
-            ],
+            messages=[{"role": "user", "content": f"Rephrase this question in Arabic: {state['question']}"}],
             temperature=0.7,
             max_tokens=256,
         )
@@ -152,19 +142,13 @@ async def retry_node(state: AgentState) -> dict:
     except Exception:
         logger.exception("LLM rephrase failed, keeping original question")
         rephrased = state["question"]
-    return {
-        "question": rephrased,
-        "retry_count": state["retry_count"] + 1,
-    }
+    return {"question": rephrased, "retry_count": state["retry_count"] + 1}
 
 
 async def generate_node(state: AgentState) -> dict:
     client = _get_llm_client()
     passages_text = _format_passages(state["passages"])
-    prompt = GROUNDING_PROMPT_SYSTEM.format(
-        passages=passages_text,
-        question=state["question"],
-    )
+    prompt = GROUNDING_PROMPT_SYSTEM.format(passages=passages_text, question=state["question"])
 
     try:
         resp = await client.chat.completions.create(
@@ -195,25 +179,30 @@ async def generate_node(state: AgentState) -> dict:
         }
         for p in state["passages"]
     ]
-
-    return {
-        "answer": answer,
-        "sources": sources,
-    }
+    return {"answer": answer, "sources": sources}
 
 
 def no_result_node(state: AgentState) -> dict:
     if state.get("embed_failed"):
-        return {
-            "answer": "The search service is temporarily unavailable due to high load on the CPU-based embedding server. Please try again in a few minutes.",
-            "no_result": True,
-        }
+        return {"answer": "The search service is temporarily unavailable due to high load on the CPU-based embedding server. Please try again in a few minutes.", "no_result": True}
     if state.get("retry_count", 0) > 0:
-        return {
-            "answer": "After multiple attempts, no relevant information was found in the provided sources. Try rephrasing your question.",
-            "no_result": True,
-        }
-    return {
-        "answer": "No relevant information found in the provided sources.",
-        "no_result": True,
-    }
+        return {"answer": "After multiple attempts, no relevant information was found in the provided sources. Try rephrasing your question.", "no_result": True}
+    return {"answer": "No relevant information found in the provided sources.", "no_result": True}
+
+
+graph = StateGraph(AgentState)
+graph.add_node("retrieve", retrieve_node)
+graph.add_node("retry", retry_node)
+graph.add_node("generate", generate_node)
+graph.add_node("no_result_handler", no_result_node)
+graph.set_entry_point("retrieve")
+graph.add_conditional_edges(
+    "retrieve", quality_check_node, {"generate": "generate", "retry": "retry", "no_result": "no_result_handler"}
+)
+graph.add_conditional_edges(
+    "retry", quality_check_node, {"generate": "generate", "no_result": "no_result_handler"}
+)
+graph.add_edge("generate", END)
+graph.add_edge("no_result_handler", END)
+
+rag_graph = graph.compile()

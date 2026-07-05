@@ -1,6 +1,6 @@
-import redis.asyncio as redis
+from redis.asyncio import Redis
 
-from app.config import settings
+from app.core.redis import get_redis
 
 LOGIN_RATE_KEY_PREFIX = "rate:login:"
 LOGIN_MAX_FAILURES = 5
@@ -8,9 +8,7 @@ LOGIN_WINDOW_SECONDS = 15 * 60
 
 
 class LoginRateLimiter:
-    """Track failed logins per IP in Redis (key: rate:login:{ip})."""
-
-    def __init__(self, client: redis.Redis) -> None:
+    def __init__(self, client: Redis) -> None:
         self._redis = client
 
     def _key(self, ip: str) -> str:
@@ -33,13 +31,3 @@ class LoginRateLimiter:
 
     async def reset(self, ip: str) -> None:
         await self._redis.delete(self._key(ip))
-
-
-_redis: redis.Redis | None = None
-
-
-async def get_redis() -> redis.Redis:
-    global _redis
-    if _redis is None:
-        _redis = redis.from_url(settings.REDIS_URL, decode_responses=True)
-    return _redis

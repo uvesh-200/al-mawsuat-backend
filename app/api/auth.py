@@ -4,15 +4,16 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Annotated
 
-import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
+from redis.asyncio import Redis
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.auth import UserManager, get_jwt_strategy, get_user_manager
-from app.core.rate_limit import LoginRateLimiter, get_redis
+from app.core.rate_limit import LoginRateLimiter
+from app.core.redis import get_redis
 from app.models.db import get_db
 from app.models.tables import RefreshToken, User
 
@@ -60,7 +61,7 @@ async def login(
     response: Response,
     session: Annotated[AsyncSession, Depends(get_db)],
     user_manager: Annotated[UserManager, Depends(get_user_manager)],
-    redis_client: Annotated[redis.Redis, Depends(get_redis)],
+    redis_client: Annotated[Redis, Depends(get_redis)],
 ) -> AccessTokenBody:
     ip = _client_ip(request)
     limiter = LoginRateLimiter(redis_client)

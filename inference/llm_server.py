@@ -1,17 +1,27 @@
 import asyncio
+import logging
+import threading
 import time
 import uuid
 
+import torch
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+logger = logging.getLogger(__name__)
 
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 
 app = FastAPI(title="LLM Server")
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+model.eval()
+
+_generate_lock = threading.Lock()
 
 
 class Message(BaseModel):
@@ -40,20 +50,24 @@ def _generate(
     temperature: float,
     max_tokens: int,
 ) -> str:
-    text = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True,
-    )
-    inputs = tokenizer(text, return_tensors="pt")
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_tokens,
-        temperature=temperature,
-        do_sample=temperature > 0,
-    )
-    input_len = inputs["input_ids"].shape[1]
-    return tokenizer.decode(outputs[0][input_len:], skip_special_tokens=True)
+    with _generate_lock:
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        inputs = tokenizer(text, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_tokens,
+                temperature=temperature if temperature > 0 else None,
+                do_sample=temperature > 0,
+                pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+            )
+        input_len = inputs["input_ids"].shape[1]
+        return tokenizer.decode(outputs[0][input_len:], skip_special_tokens=True)
 
 
 @app.get("/health")

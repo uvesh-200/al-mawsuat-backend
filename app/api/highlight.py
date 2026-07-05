@@ -18,7 +18,7 @@ router = APIRouter(tags=["highlight"])
 async def get_highlight(
     book_id: str = Query(...),
     page: int = Query(..., ge=1),
-    bbox: str = Query(...),
+    bbox: str | None = Query(None),
     user: User | None = Depends(get_optional_current_user),
 ) -> Response:
     try:
@@ -41,18 +41,23 @@ async def get_highlight(
             detail=f"Page {page} exceeds total pages ({book.total_pages})",
         )
 
-    try:
-        parts = [float(x) for x in bbox.split(",")]
-        if len(parts) != 4:
-            raise ValueError
-    except ValueError:
-        raise HTTPException(
-            status_code=422,
-            detail="bbox must be 4 comma-separated numbers: x0,y0,x1,y1",
-        )
+    if bbox is not None:
+        try:
+            parts = [float(x) for x in bbox.split(",")]
+            if len(parts) != 4:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail="bbox must be 4 comma-separated numbers: x0,y0,x1,y1",
+            )
+        x0, y0, x1, y1 = parts
+        cache_suffix = bbox
+    else:
+        parts = None
+        cache_suffix = "full"
 
-    x0, y0, x1, y1 = parts
-    cache_path = f"{settings.DEFAULT_TENANT_ID}/{book_id}/p{page}-{bbox}.png"
+    cache_path = f"{settings.DEFAULT_TENANT_ID}/{book_id}/p{page}-{cache_suffix}.png"
 
     cached = await storage.get_file_safe(settings.MINIO_BUCKET_HIGHLIGHTS, cache_path)
     if cached is not None:
@@ -71,8 +76,9 @@ async def get_highlight(
             )
 
         p = doc[page - 1]
-        rect = fitz.Rect(x0, y0, x1, y1)
-        p.draw_rect(rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0)
+        if parts is not None:
+            rect = fitz.Rect(x0, y0, x1, y1)
+            p.draw_rect(rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0)
         pixmap = p.get_pixmap(dpi=150)
         img_bytes = pixmap.tobytes("png")
     finally:

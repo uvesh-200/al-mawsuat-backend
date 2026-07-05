@@ -80,6 +80,16 @@ class ProcessingJob(Base):
     retry_count = Column(Integer, nullable=False, default=0)
 
 
+class AdminSettings(Base):
+    __tablename__ = "admin_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    system_prompt = Column(Text, nullable=False, default="")
+    product_name = Column(String(255), nullable=False, default="Al-Mawsu'at al-Deobandiyyah")
+    primary_color = Column(String(7), nullable=False, default="#1D9E75")
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 

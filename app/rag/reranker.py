@@ -1,9 +1,14 @@
 import asyncio
 from functools import partial
 
+import numpy as np
 from sentence_transformers import CrossEncoder
 
 _cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+
+def _sigmoid(x: float) -> float:
+    return 1.0 / (1.0 + np.exp(-x))
 
 
 async def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dict]:
@@ -38,11 +43,11 @@ async def rerank(question: str, results: list[dict], top_k: int = 5) -> list[dic
     pairs = [(question, r["text"]) for r in fused_top]
     loop = asyncio.get_running_loop()
     scores = await loop.run_in_executor(
-        None, partial(_cross_encoder.predict, pairs, apply_softmax=True)
+        None, partial(_cross_encoder.predict, pairs, apply_softmax=False)
     )
 
     for r, s in zip(fused_top, scores):
-        r["score"] = float(s)
+        r["score"] = round(_sigmoid(float(s)), 4)
 
     fused_top.sort(key=lambda r: r["score"], reverse=True)
     return fused_top[:top_k]

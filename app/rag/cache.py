@@ -1,18 +1,7 @@
 import hashlib
 import json
 
-from redis.asyncio import Redis
-
-from app.config import settings
-
-_redis: Redis | None = None
-
-
-async def _get_redis() -> Redis:
-    global _redis
-    if _redis is None:
-        _redis = Redis.from_url(settings.REDIS_URL)
-    return _redis
+from app.core.redis import get_redis
 
 
 def _normalise(question: str) -> str:
@@ -25,7 +14,7 @@ def _hash(text: str) -> str:
 
 async def get_cached_answer(tenant_id: str, question: str) -> dict | None:
     key = f"cache:{tenant_id}:{_hash(_normalise(question))}"
-    r = await _get_redis()
+    r = await get_redis()
     data = await r.get(key)
     if data is None:
         return None
@@ -34,5 +23,5 @@ async def get_cached_answer(tenant_id: str, question: str) -> dict | None:
 
 async def set_cached_answer(tenant_id: str, question: str, response: dict) -> None:
     key = f"cache:{tenant_id}:{_hash(_normalise(question))}"
-    r = await _get_redis()
+    r = await get_redis()
     await r.setex(key, 86400, json.dumps(response))

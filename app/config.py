@@ -19,10 +19,6 @@ class Settings(BaseSettings):
     MINIO_BUCKET_BOOKS: str = "books"
     MINIO_BUCKET_HIGHLIGHTS: str = "highlights"
 
-    KAFKA_BOOTSTRAP_SERVERS: str = "kafka:9092"
-    KAFKA_TOPIC_BOOKS: str = "book-processing"
-    KAFKA_CONSUMER_GROUP: str = "mawsuat-workers"
-
     EMBEDDING_SERVER_URL: str = "http://embedding_server:8001"
     VLLM_BASE_URL: str = "http://vllm:8003/v1"
     VLLM_MODEL: str = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -42,4 +38,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
