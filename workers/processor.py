@@ -36,21 +36,28 @@ async def _update_job(
     book_id: str, *, status: str, progress_pct: int, current_step: str | None = None,
     error_msg: str | None = None, checkpoint: dict | None = None,
 ) -> None:
+    now = datetime.now(timezone.utc)
     max_attempts = 3
     for attempt in range(max_attempts):
         try:
             async with AsyncSessionLocal() as session:
                 values: dict = {"status": status, "progress_pct": progress_pct}
                 if status != "failed":
-                    values["heartbeat_at"] = datetime.now(timezone.utc)
+                    values["heartbeat_at"] = now
                 if current_step is not None:
                     values["current_step"] = current_step
                 if error_msg is not None:
                     values["error_msg"] = error_msg
                 if checkpoint is not None:
                     values["checkpoint"] = checkpoint
+                if status in ("extracting", "chunking", "embedding", "indexing"):
+                    stmt_sa = select(ProcessingJob.started_at).where(ProcessingJob.book_id == book_id)
+                    row = await session.execute(stmt_sa)
+                    existing_started_at = row.scalar_one_or_none()
+                    if existing_started_at is None:
+                        values["started_at"] = now
                 if status in ("completed", "failed"):
-                    values["finished_at"] = datetime.now(timezone.utc)
+                    values["finished_at"] = now
                 stmt = update(ProcessingJob).where(ProcessingJob.book_id == book_id).values(**values)
                 await session.execute(stmt)
                 await session.commit()
@@ -102,7 +109,13 @@ def _phase_index(status: str) -> int:
 async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> None:
     job = await _read_job(book_id)
     if job is None:
-        raise ValueError(f"No processing_job for book {book_id}")
+        logger.warning("No processing_job for book %s (was it deleted?)", book_id)
+        return
+
+    book = await _get_book(book_id)
+    if book is None:
+        logger.warning("Book %s was deleted before processing started, skipping", book_id)
+        return
 
     start_phase = _phase_index("queued")
     start_page = 0

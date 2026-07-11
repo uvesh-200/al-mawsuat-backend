@@ -157,11 +157,23 @@ async def delete_book(
     if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
 
+    job_result = await session.execute(
+        select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))
+    )
+    job = job_result.scalar_one_or_none()
+    if job is not None and job.task_id:
+        try:
+            from workers.celery_app import celery_app
+            celery_app.control.revoke(job.task_id, terminate=True)
+        except Exception:
+            pass
+
     import asyncio
     await asyncio.gather(_delete_from_qdrant(book_id), _delete_from_meilisearch(book_id))
 
     if book.minio_path:
         await storage.delete_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)
+    await session.execute(sa_delete(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id)))
     await session.execute(sa_delete(Book).where(Book.id == uuid.UUID(book_id)))
     await session.commit()
 

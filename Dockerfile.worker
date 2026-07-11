@@ -19,4 +19,4 @@ COPY . /app
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-CMD ["celery", "-A", "workers.celery_worker", "worker", "--loglevel=info", "--concurrency=1"]
+CMD ["celery", "-A", "workers.celery_app", "worker", "--loglevel=info", "--concurrency=2"]

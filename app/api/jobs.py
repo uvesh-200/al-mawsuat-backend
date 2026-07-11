@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,13 @@ from app.models.tables import ProcessingJob, User
 router = APIRouter(prefix="/admin/jobs", tags=["jobs"])
 
 
+def _compute_duration(started_at, finished_at) -> int | None:
+    if started_at and finished_at:
+        diff = finished_at - started_at
+        return int(diff.total_seconds())
+    return None
+
+
 class JobOut(BaseModel):
     id: str
     book_id: str
@@ -24,6 +32,7 @@ class JobOut(BaseModel):
     error_msg: str | None
     started_at: str | None
     finished_at: str | None
+    duration_seconds: int | None
 
 
 @router.get("/active")
@@ -47,6 +56,7 @@ async def list_jobs(
             error_msg=j.error_msg,
             started_at=j.started_at.isoformat() if j.started_at else None,
             finished_at=j.finished_at.isoformat() if j.finished_at else None,
+            duration_seconds=_compute_duration(j.started_at, j.finished_at),
         )
         for j in jobs
     ]
@@ -74,4 +84,5 @@ async def get_job(
         error_msg=job.error_msg,
         started_at=job.started_at.isoformat() if job.started_at else None,
         finished_at=job.finished_at.isoformat() if job.finished_at else None,
+        duration_seconds=_compute_duration(job.started_at, job.finished_at),
     )

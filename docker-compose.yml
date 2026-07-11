@@ -200,7 +200,7 @@ services:
       VLLM_BASE_URL: http://llm_server:8003/v1
       QDRANT_HOST: qdrant
       MEILISEARCH_URL: http://meilisearch:7700
-    command: ["celery", "-A", "workers.celery_worker", "beat", "--loglevel=info"]
+    command: ["celery", "-A", "workers.celery_app", "beat", "--loglevel=info"]
     depends_on:
       - postgres
       - pgbouncer

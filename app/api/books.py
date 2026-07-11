@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timezone
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile, status
@@ -190,6 +191,8 @@ async def get_book(
             "current_step": job.current_step, "error_msg": job.error_msg,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            "duration_seconds": int((job.finished_at - job.started_at).total_seconds())
+                if job.started_at and job.finished_at else None,
         } if job else None,
     )
 

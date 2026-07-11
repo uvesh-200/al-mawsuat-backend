@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import redis.asyncio as aioredis
 from celery import Celery
-from sqlalchemy import select, update
+from sqlalchemy import delete as sa_delete, select, update
 
 from app.config import settings
 from app.models.db import AsyncSessionLocal
@@ -123,20 +123,22 @@ def reap_stale_jobs() -> None:
                 for job in stale:
                     if job.task_id:
                         celery_app.control.revoke(job.task_id, terminate=True)
+                    book_result = await session.execute(
+                        select(Book).where(Book.id == job.book_id)
+                    )
+                    book = book_result.scalar_one_or_none()
+                    if book is None:
+                        await session.execute(
+                            sa_delete(ProcessingJob).where(ProcessingJob.id == job.id)
+                        )
+                        continue
                     await session.execute(
                         update(ProcessingJob)
                         .where(ProcessingJob.id == job.id)
                         .values(status="queued", progress_pct=0, current_step="re-queued",
                                 checkpoint=None, error_msg=None, retry_count=0)
                     )
-                await session.commit()
-                for job in stale:
-                    book_result = await session.execute(
-                        select(Book).where(Book.id == job.book_id)
-                    )
-                    book = book_result.scalar_one_or_none()
-                    if book is None:
-                        continue
+                    await session.commit()
                     process_book.delay(
                         book_id=str(job.book_id),
                         minio_path=book.minio_path or "",
