@@ -141,7 +141,7 @@ async def ask_json(
     except asyncio.TimeoutError:
         elapsed = int((time.monotonic() - start) * 1000)
         await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
-        raise HTTPException(status_code=504, detail="Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration.")
+        raise HTTPException(status_code=504, detail="Request timed out. Please try again later.")
     answer = result.get("answer", "")
     no_result = result.get("no_result", False)
     raw_sources = result.get("sources", [])
@@ -201,7 +201,7 @@ async def ask_stream(
         except asyncio.TimeoutError:
             elapsed = int((time.monotonic() - start) * 1000)
             await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
-            error_data = json.dumps({"type": "error", "content": "Request timed out. The AI models are running on CPU which is slow — please try again later or contact the administrator to enable GPU acceleration."})
+            error_data = json.dumps({"type": "error", "content": "Request timed out. Please try again later."})
             done_data = json.dumps({"type": "done"})
             return StreamingResponse(
                 iter([f"data: {error_data}\n\ndata: {done_data}\n\n"]),

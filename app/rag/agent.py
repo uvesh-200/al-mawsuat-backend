@@ -20,8 +20,8 @@ def _get_llm_client() -> AsyncOpenAI:
     global llm_client
     if llm_client is None:
         llm_client = AsyncOpenAI(
-            base_url=settings.VLLM_BASE_URL,
-            api_key="not-needed",
+            base_url=settings.GROQ_BASE_URL,
+            api_key=settings.GROQ_API_KEY,
             timeout=240.0,
         )
     return llm_client
@@ -133,7 +133,7 @@ async def retry_node(state: AgentState) -> dict:
     client = _get_llm_client()
     try:
         resp = await client.chat.completions.create(
-            model=settings.VLLM_MODEL,
+            model=settings.GROQ_LLM_MODEL,
             messages=[{"role": "user", "content": f"Rephrase this question in Arabic: {state['question']}"}],
             temperature=0.7,
             max_tokens=256,
@@ -152,13 +152,13 @@ async def generate_node(state: AgentState) -> dict:
 
     try:
         resp = await client.chat.completions.create(
-            model=settings.VLLM_MODEL,
+            model=settings.GROQ_LLM_MODEL,
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": state["question"]},
             ],
             temperature=0.3,
-            max_tokens=512,
+            max_tokens=256,
         )
         answer = resp.choices[0].message.content or ""
     except Exception:
@@ -184,7 +184,7 @@ async def generate_node(state: AgentState) -> dict:
 
 def no_result_node(state: AgentState) -> dict:
     if state.get("embed_failed"):
-        return {"answer": "The search service is temporarily unavailable due to high load on the CPU-based embedding server. Please try again in a few minutes.", "no_result": True}
+        return {"answer": "The search service is temporarily unavailable. Please try again in a few minutes.", "no_result": True}
     if state.get("retry_count", 0) > 0:
         return {"answer": "After multiple attempts, no relevant information was found in the provided sources. Try rephrasing your question.", "no_result": True}
     return {"answer": "No relevant information found in the provided sources.", "no_result": True}

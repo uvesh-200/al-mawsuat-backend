@@ -14,17 +14,25 @@ EMBED_BATCH_SIZE = 10
 MAX_RETRIES = 3
 RETRY_DELAY = 2.0
 
+GEMINI_EMBED_URL = f"{settings.GEMINI_API_BASE}/v1/models/{settings.GEMINI_EMBEDDING_MODEL}:batchEmbedContents"
+
 
 async def _embed_batch(client: httpx.AsyncClient, texts: list[str]) -> list[list[float]]:
     last_exc: Exception | None = None
     for attempt in range(MAX_RETRIES):
         try:
+            requests = [
+                {"model": f"models/{settings.GEMINI_EMBEDDING_MODEL}", "content": {"parts": [{"text": t}]}}
+                for t in texts
+            ]
             resp = await client.post(
-                f"{settings.EMBEDDING_SERVER_URL}/embed",
-                json={"texts": texts},
+                GEMINI_EMBED_URL,
+                headers={"x-goog-api-key": settings.GEMINI_API_KEY},
+                json={"requests": requests},
             )
             resp.raise_for_status()
-            return resp.json()["vectors"]
+            data = resp.json()
+            return [e["values"] for e in data.get("embeddings", [])]
         except Exception as e:
             last_exc = e
             logger.warning("Embedding attempt %d/%d failed: %s", attempt + 1, MAX_RETRIES, e)

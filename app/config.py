@@ -19,10 +19,19 @@ class Settings(BaseSettings):
     MINIO_BUCKET_BOOKS: str = "books"
     MINIO_BUCKET_HIGHLIGHTS: str = "highlights"
 
-    EMBEDDING_SERVER_URL: str = "http://embedding_server:8001"
-    VLLM_BASE_URL: str = "http://vllm:8003/v1"
-    VLLM_MODEL: str = "Qwen/Qwen2.5-0.5B-Instruct"
-    NLLB_SERVER_URL: str = "http://translation_server:8002"
+    GEMINI_API_KEY: str = ""
+    GEMINI_API_BASE: str = "https://generativelanguage.googleapis.com"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+
+    GROQ_API_KEY: str = ""
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_LLM_MODEL: str = "llama-3.3-70b-versatile"
+
+    GOOGLE_TRANSLATE_API_KEY: str = ""
+    GOOGLE_TRANSLATE_BASE_URL: str = "https://translation.googleapis.com/language/translate/v2"
+
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001"]
+    CORS_ORIGIN_REGEX: str = r"http://localhost:\d+"
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

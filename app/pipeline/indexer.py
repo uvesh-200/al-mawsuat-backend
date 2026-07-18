@@ -13,7 +13,7 @@ from app.models.tables import Book
 
 QDRANT_COLLECTION = "documents"
 MEILISEARCH_INDEX = "documents"
-VECTOR_SIZE = 1024
+VECTOR_SIZE = 3072
 
 MEILISEARCH_FILTERABLE = ["tenant_id", "book_id", "language", "book_type"]
 MEILISEARCH_SEARCHABLE = ["text", "chapter", "book_name", "author"]

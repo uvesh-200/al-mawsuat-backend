@@ -83,46 +83,6 @@ services:
       - "9000:9000"
       - "9001:9001"
 
-  embedding_server:
-    build:
-      context: ./inference
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    volumes:
-      - hf_cache_embedding:/root/.cache/huggingface
-    networks:
-      - mawsuat_network
-    expose:
-      - "8001"
-
-  translation_server:
-    build:
-      context: ./inference
-      dockerfile: Dockerfile.translation
-    restart: unless-stopped
-    networks:
-      - mawsuat_network
-    volumes:
-      - hf_cache_translation:/root/.cache/huggingface
-    expose:
-      - "8002"
-    ports:
-      - "8002:8002"
-
-  llm_server:
-    build:
-      context: ./inference
-      dockerfile: Dockerfile.llm
-    restart: unless-stopped
-    volumes:
-      - hf_cache_llm:/root/.cache/huggingface
-    networks:
-      - mawsuat_network
-    expose:
-      - "8003"
-    ports:
-      - "8003:8003"
-
   fastapi:
     build:
       context: .
@@ -135,9 +95,6 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
-      EMBEDDING_SERVER_URL: http://embedding_server:8001
-      NLLB_SERVER_URL: http://translation_server:8002
-      VLLM_BASE_URL: http://llm_server:8003/v1
       QDRANT_HOST: qdrant
       MEILISEARCH_URL: http://meilisearch:7700
     depends_on:
@@ -147,9 +104,6 @@ services:
       - qdrant
       - meilisearch
       - minio
-      - embedding_server
-      - translation_server
-      - llm_server
     networks:
       - mawsuat_network
     expose:
@@ -166,9 +120,6 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
-      EMBEDDING_SERVER_URL: http://embedding_server:8001
-      NLLB_SERVER_URL: http://translation_server:8002
-      VLLM_BASE_URL: http://llm_server:8003/v1
       QDRANT_HOST: qdrant
       MEILISEARCH_URL: http://meilisearch:7700
     depends_on:
@@ -178,9 +129,6 @@ services:
       - qdrant
       - meilisearch
       - minio
-      - embedding_server
-      - translation_server
-      - llm_server
     networks:
       - mawsuat_network
 
@@ -195,9 +143,6 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
-      EMBEDDING_SERVER_URL: http://embedding_server:8001
-      NLLB_SERVER_URL: http://translation_server:8002
-      VLLM_BASE_URL: http://llm_server:8003/v1
       QDRANT_HOST: qdrant
       MEILISEARCH_URL: http://meilisearch:7700
     command: ["celery", "-A", "workers.celery_app", "beat", "--loglevel=info"]
@@ -226,9 +171,6 @@ volumes:
   qdrant_data:
   meili_data:
   minio_data:
-  hf_cache_embedding:
-  hf_cache_translation:
-  hf_cache_llm:
 
 networks:
   mawsuat_network:
