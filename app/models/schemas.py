@@ -10,6 +10,7 @@ class SourceItem(BaseModel):
     chapter: str | None = None
     page: int | None = None
     relevance_score: float
+    text: str | None = None
     bbox: list[float] | None = None
     highlight_url: str | None = None
 

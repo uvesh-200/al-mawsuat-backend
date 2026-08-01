@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator
@@ -41,7 +42,10 @@ logging.getLogger("api").setLevel(getattr(logging, settings.LOG_LEVEL.upper(), l
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
-    await storage.ensure_buckets()
+    try:
+        await asyncio.wait_for(storage.ensure_buckets(), timeout=5)
+    except (TimeoutError, asyncio.TimeoutError, OSError):
+        pass
     yield
 
 

@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_API_BASE: str = "https://generativelanguage.googleapis.com"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+    GEMINI_OCR_MODEL: str = "gemini-3.1-flash-lite"
+
+    OCR_ENGINE: str = "tesseract"
+    OCR_DPI: int = 200
+    OCR_MAX_WORKERS: int = 0
+    OCR_RATE_LIMIT_RPM: int = 1000
+    OCR_CONCURRENT_BATCHES: int = 5
+    OCR_MAX_RETRIES: int = 10
+    OCR_RETRY_MAX_DELAY: int = 120
+    EMBED_RATE_LIMIT_RPM: int = 1000
+    EMBED_CONCURRENT_BATCHES: int = 10
 
     GROQ_API_KEY: str = ""
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"

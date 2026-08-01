@@ -9,12 +9,20 @@ CHAPTER_WORDS = ("باب", "كتاب", "الفصل")
 HARD_CEILING = 900
 TARGET_MAX = 800
 
+HEADING_MARK = re.compile(r"^[\*\#\-\u2022\u00b7_\s]+")
+NUMBER_MARK = re.compile(r"^\d+[\.\)،]?\s*")
+TRAILING_PUNCT = re.compile(r"[.۔!?؟:,،;؛]$")
+LEADING_BRACKET = re.compile(r"^[\(\[\"'\u201c\u201d\u00ab\u00bb]")
+HAS_LETTER = re.compile(r"[A-Za-z\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")
+
 
 def chunk(pages: list[dict], tenant_id: str) -> list[dict]:
     if not pages:
         return []
 
     words = _flatten(pages)
+    if not words:
+        return []
     lines = _group_lines(words)
     chapters = _detect_chapters(lines)
     strategy = _detect_strategy(lines)
@@ -38,7 +46,11 @@ def _group_lines(words: list[dict]) -> list[list[dict]]:
     for w in words[1:]:
         prev = current[-1]
         same_page = w["page_num"] == prev["page_num"]
-        same_line = same_page and abs(w["bbox"][1] - prev["bbox"][1]) < 8
+        same_line = same_page and (
+            w.get("bbox") is not None
+            and prev.get("bbox") is not None
+            and abs(w["bbox"][1] - prev["bbox"][1]) < 8
+        )
         if same_line:
             current.append(w)
         else:
@@ -53,19 +65,38 @@ def _line_text(line: list[dict]) -> str:
     return " ".join(w["text"] for w in line)
 
 
+def _normalize_heading(text: str) -> Optional[str]:
+    stripped = text.strip()
+    stripped = HEADING_MARK.sub("", stripped).strip()
+    stripped = NUMBER_MARK.sub("", stripped).strip()
+    stripped = stripped.rstrip("*#").strip()
+    if not stripped:
+        return None
+    if LEADING_BRACKET.search(stripped):
+        return None
+    if TRAILING_PUNCT.search(stripped):
+        return None
+    if not HAS_LETTER.search(stripped):
+        return None
+    word_list = stripped.split()
+    if len(word_list) < 2 or len(word_list) > 8 or len(stripped) >= 50:
+        return None
+    return stripped
+
+
 def _detect_chapters(lines: list[list[dict]]) -> dict[int, str]:
     indices: dict[int, str] = {}
     chapter: Optional[str] = None
     for i, line in enumerate(lines):
-        text = _line_text(line)
-        stripped = text.strip()
-        word_list = stripped.split()
-        if len(word_list) <= 8 and len(stripped) < 50:
-            first = word_list[0] if word_list else ""
+        candidate = _normalize_heading(_line_text(line))
+        if candidate:
+            first = candidate.split()[0]
             if first in CHAPTER_WORDS or (
-                first and all(c.isupper() for c in first if c.isalpha())
+                first
+                and any(c.isalpha() for c in first)
+                and all(c.isupper() for c in first if c.isalpha())
             ):
-                chapter = stripped
+                chapter = candidate
         if chapter is not None:
             indices[i] = chapter
     return indices
@@ -205,8 +236,10 @@ def _compute_text(words: list[dict]) -> str:
     return " ".join(w["text"] for w in words)
 
 
-def _compute_bbox(words: list[dict]) -> list[float]:
-    bboxes = [w["bbox"] for w in words]
+def _compute_bbox(words: list[dict]) -> list[float] | None:
+    bboxes = [w["bbox"] for w in words if w.get("bbox") is not None]
+    if not bboxes:
+        return None
     return [
         min(b[0] for b in bboxes),
         min(b[1] for b in bboxes),

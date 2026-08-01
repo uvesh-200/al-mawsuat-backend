@@ -16,7 +16,7 @@ MEILISEARCH_INDEX = "documents"
 async def vector_search(
     vector: list[float],
     tenant_id: str,
-    top_k: int = 20,
+    top_k: int = 30,
 ) -> list[dict]:
     client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
     try:
@@ -55,7 +55,7 @@ async def vector_search(
 async def keyword_search(
     query: str,
     tenant_id: str,
-    top_k: int = 20,
+    top_k: int = 30,
 ) -> list[dict]:
     try:
         loop = asyncio.get_running_loop()

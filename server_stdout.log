@@ -1,0 +1,24 @@
+2026-07-19 10:39:14,539 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-07-19 10:39:14,555 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-07-19 10:39:14,579 INFO sqlalchemy.engine.Engine select current_schema()
+2026-07-19 10:39:14,602 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-07-19 10:39:14,625 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-07-19 10:39:14,647 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-07-19 10:39:14,670 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-07-19 10:39:14,694 INFO sqlalchemy.engine.Engine SELECT 1
+2026-07-19 10:39:14,714 INFO sqlalchemy.engine.Engine [generated in 0.01988s] ()
+2026-07-19 10:39:14,738 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50401 - "GET /health HTTP/1.1" 200 OK
+2026-07-19 10:39:15,417 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-07-19 10:39:15,425 INFO sqlalchemy.engine.Engine SELECT users.id, users.tenant_id, users.email, users.hashed_pw, users.role, users.is_active, users.is_superuser, users.is_verified, users.created_at 
+FROM users 
+WHERE lower(users.email) = lower($1::VARCHAR)
+2026-07-19 10:39:15,426 INFO sqlalchemy.engine.Engine [generated in 0.00144s] ('superadmin@al-mawsuat.local',)
+2026-07-19 10:39:15,746 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50401 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50401 - "POST /ask HTTP/1.1" 200 OK
+2026-07-19 10:39:21,088 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-07-19 10:39:21,090 INFO sqlalchemy.engine.Engine SELECT 1
+2026-07-19 10:39:21,092 INFO sqlalchemy.engine.Engine [cached since 6.398s ago] ()
+2026-07-19 10:39:21,096 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50401 - "GET /health HTTP/1.1" 200 OK

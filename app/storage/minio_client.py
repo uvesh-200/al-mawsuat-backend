@@ -19,14 +19,13 @@ class StorageClient:
 
     async def ensure_buckets(self) -> None:
         try:
-            async with asyncio.timeout(15):
-                for bucket in (settings.MINIO_BUCKET_BOOKS, settings.MINIO_BUCKET_HIGHLIGHTS):
-                    exists = await asyncio.to_thread(
-                        self._client.bucket_exists, bucket
-                    )
-                    if not exists:
-                        await asyncio.to_thread(self._client.make_bucket, bucket)
-        except (TimeoutError, asyncio.TimeoutError):
+            for bucket in (settings.MINIO_BUCKET_BOOKS, settings.MINIO_BUCKET_HIGHLIGHTS):
+                exists = await asyncio.to_thread(
+                    self._client.bucket_exists, bucket
+                )
+                if not exists:
+                    await asyncio.to_thread(self._client.make_bucket, bucket)
+        except Exception:
             pass
 
     async def upload_file(

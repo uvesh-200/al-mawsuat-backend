@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Annotated
 
@@ -26,33 +27,44 @@ class BookUpdate(BaseModel):
 
 
 async def _delete_from_qdrant(book_id: str) -> None:
-    from qdrant_client import AsyncQdrantClient
-    from qdrant_client.models import FieldCondition, Filter, FilterSelector, MatchValue
-    client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
     try:
-        await client.delete(
-            collection_name="documents",
-            points_selector=FilterSelector(
-                filter=Filter(must=[
-                    FieldCondition(key="book_id", match=MatchValue(value=book_id)),
-                    FieldCondition(key="tenant_id", match=MatchValue(value=settings.DEFAULT_TENANT_ID)),
-                ])
-            ),
-        )
-    finally:
-        await client.close()
+        from qdrant_client import AsyncQdrantClient
+        from qdrant_client.models import FieldCondition, Filter, FilterSelector, MatchValue
+        client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=10)
+        try:
+            collections = await client.get_collections()
+            if not any(c.name == "documents" for c in collections.collections):
+                return
+            await client.delete(
+                collection_name="documents",
+                points_selector=FilterSelector(
+                    filter=Filter(must=[
+                        FieldCondition(key="book_id", match=MatchValue(value=book_id)),
+                        FieldCondition(key="tenant_id", match=MatchValue(value=settings.DEFAULT_TENANT_ID)),
+                    ])
+                ),
+            )
+        finally:
+            await client.close()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to delete book %s from Qdrant: %s", book_id, e)
 
 
 async def _delete_from_meilisearch(book_id: str) -> None:
-    import meilisearch
-    client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY)
     try:
-        resp = client.index("documents").search("", opt_params={"filter": [f"book_id={book_id}"], "limit": 1000})
-        ids = [h["id"] for h in resp.get("hits", [])]
-        if ids:
-            client.index("documents").delete_documents(ids)
-    except meilisearch.errors.MeilisearchApiError:
-        pass
+        import meilisearch
+        client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY)
+        try:
+            resp = client.index("documents").search("", opt_params={"filter": [f"book_id={book_id}"], "limit": 1000})
+            ids = [h["id"] for h in resp.get("hits", [])]
+            if ids:
+                client.index("documents").delete_documents(ids)
+        except meilisearch.errors.MeilisearchApiError:
+            pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to delete book %s from Meilisearch: %s", book_id, e)
 
 
 async def _update_qdrant_payload(book_id: str, data: BookUpdate) -> None:
@@ -168,11 +180,14 @@ async def delete_book(
         except Exception:
             pass
 
-    import asyncio
     await asyncio.gather(_delete_from_qdrant(book_id), _delete_from_meilisearch(book_id))
 
     if book.minio_path:
-        await storage.delete_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)
+        try:
+            await storage.delete_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to delete book %s from MinIO: %s", book_id, e)
     await session.execute(sa_delete(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id)))
     await session.execute(sa_delete(Book).where(Book.id == uuid.UUID(book_id)))
     await session.commit()
@@ -189,7 +204,22 @@ async def reprocess_book(
     if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
 
-    await session.execute(sa_delete(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id)))
+    old_job_result = await session.execute(
+        select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))
+    )
+    old_job = old_job_result.scalar_one_or_none()
+    if old_job is not None and old_job.task_id:
+        try:
+            from workers.celery_app import celery_app
+            celery_app.control.revoke(old_job.task_id, terminate=True)
+        except Exception:
+            pass
+        await session.execute(sa_delete(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id)))
+
+    await asyncio.gather(
+        _delete_from_qdrant(book_id), _delete_from_meilisearch(book_id)
+    )
+
     book.status = "pending"
     book.total_chunks = 0
     book.total_pages = None

@@ -90,7 +90,10 @@ async def _heartbeat_loop(book_id: str, stop_event: asyncio.Event) -> None:
             except asyncio.TimeoutError:
                 pass
     finally:
-        await r.aclose()
+        try:
+            await r.aclose()
+        except RuntimeError:
+            pass
 
 
 async def _get_book(book_id: str) -> Book | None:
@@ -126,6 +129,10 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
     stop_heartbeat = asyncio.Event()
     heartbeat_task = asyncio.ensure_future(_heartbeat_loop(book_id, stop_heartbeat))
 
+    pages: list = []
+    chunks: list = []
+    vectors: list = []
+
     try:
         if start_phase <= _phase_index("extracting"):
             pdf_bytes = await storage.get_file(settings.MINIO_BUCKET_BOOKS, minio_path)
@@ -135,8 +142,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                 progress["current"] = current
                 progress["total"] = total
 
-            extract_coro = asyncio.to_thread(extract, pdf_bytes, _on_page_done)
-            extract_task = asyncio.ensure_future(extract_coro)
+            extract_task = asyncio.ensure_future(extract(pdf_bytes, _on_page_done))
             last_checkpoint_page = start_page
 
             while not extract_task.done():
@@ -205,4 +211,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
             await publish_book_update({"book_id": book_id, "status": "ready"})
     finally:
         stop_heartbeat.set()
-        await heartbeat_task
+        try:
+            await heartbeat_task
+        except RuntimeError:
+            pass

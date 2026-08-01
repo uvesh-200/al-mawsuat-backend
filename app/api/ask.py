@@ -20,6 +20,21 @@ from app.rag.cache import get_cached_answer, set_cached_answer
 
 router = APIRouter(prefix="/ask", tags=["ask"])
 
+NO_RESULT_PATTERNS = (
+    "no relevant information found",
+    "no relevant information was found",
+    "after multiple attempts, no relevant information",
+    "لا توجد معلومات ذات صلة",
+    "لا توجد معلومات",
+    "لم يتم العثور على معلومات",
+    "کوئی متعلقہ معلومات نہیں",
+)
+
+
+def _looks_like_no_result(answer: str) -> bool:
+    lowered = (answer or "").strip().lower()
+    return any(pattern in lowered for pattern in NO_RESULT_PATTERNS)
+
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4096)
@@ -61,6 +76,7 @@ def _build_source(
         chapter=s.get("chapter"),
         page=page,
         relevance_score=s.get("score", 0.0),
+        text=s.get("text") or None,
         bbox=bbox_list,
         highlight_url=highlight_url,
     )
@@ -143,7 +159,7 @@ async def ask_json(
         await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
         raise HTTPException(status_code=504, detail="Request timed out. Please try again later.")
     answer = result.get("answer", "")
-    no_result = result.get("no_result", False)
+    no_result = result.get("no_result", False) or _looks_like_no_result(answer)
     raw_sources = result.get("sources", [])
 
     sources = [
@@ -208,7 +224,7 @@ async def ask_stream(
                 media_type="text/event-stream",
             )
         answer = result.get("answer", "")
-        no_result = result.get("no_result", False)
+        no_result = result.get("no_result", False) or _looks_like_no_result(answer)
         raw_sources = result.get("sources", [])
         was_cached = False
         cache_body = {

@@ -13,6 +13,16 @@ async def get_redis() -> Redis:
     return _redis
 
 
+async def close_redis() -> None:
+    global _redis
+    if _redis is not None:
+        try:
+            await _redis.aclose()
+        except RuntimeError:
+            pass
+        _redis = None
+
+
 async def get_pubsub_redis() -> Redis:
     global _pubsub_redis
     if _pubsub_redis is None:

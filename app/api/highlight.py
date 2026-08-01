@@ -9,9 +9,38 @@ from app.config import settings
 from app.core.auth import get_optional_current_user
 from app.models.db import AsyncSessionLocal
 from app.models.tables import Book, User
+from app.pipeline.extractor import _words_from_tesseract
 from app.storage.minio_client import storage
 
 router = APIRouter(tags=["highlight"])
+
+
+def _norm_word(word: str) -> str:
+    import re
+
+    word = re.sub(r"[\u064B-\u0652\u0670\u0640]", "", word)
+    word = word.translate(str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و", "ئ": "ي"}))
+    return re.sub(r"[^\w\u0600-\u06FF]", "", word).lower()
+
+
+def _locate_bbox(words: list[dict], snippet: str) -> list[float] | None:
+    snippet_words = [w for w in snippet.split() if w.strip()]
+    if len(snippet_words) < 3:
+        return None
+    norm = {_norm_word(w["text"]): w["bbox"] for w in words if _norm_word(w["text"])}
+    matched: list[list[float]] = []
+    for w in snippet_words:
+        box = norm.get(_norm_word(w))
+        if box:
+            matched.append(box)
+    if len(matched) < 3 or len(matched) / len(snippet_words) < 0.35:
+        return None
+    return [
+        min(b[0] for b in matched),
+        min(b[1] for b in matched),
+        max(b[2] for b in matched),
+        max(b[3] for b in matched),
+    ]
 
 
 @router.get("/highlight")
@@ -19,6 +48,7 @@ async def get_highlight(
     book_id: str = Query(...),
     page: int = Query(..., ge=1),
     bbox: str | None = Query(None),
+    text: str | None = Query(None),
     user: User | None = Depends(get_optional_current_user),
 ) -> Response:
     try:
@@ -53,6 +83,11 @@ async def get_highlight(
             )
         x0, y0, x1, y1 = parts
         cache_suffix = bbox
+    elif text is not None:
+        parts = None
+        import hashlib
+
+        cache_suffix = "t" + hashlib.sha1(text.encode()).hexdigest()[:16]
     else:
         parts = None
         cache_suffix = "full"
@@ -79,6 +114,16 @@ async def get_highlight(
         if parts is not None:
             rect = fitz.Rect(x0, y0, x1, y1)
             p.draw_rect(rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0)
+        elif text is not None:
+            found = _locate_bbox(_words_from_tesseract(p), text)
+            if found is not None:
+                p.draw_rect(
+                    fitz.Rect(found[0] - 2, found[1] - 2, found[2] + 2, found[3] + 2),
+                    color=(1, 0.85, 0),
+                    fill=(1, 0.85, 0),
+                    fill_opacity=0.45,
+                    width=0,
+                )
         pixmap = p.get_pixmap(dpi=150)
         img_bytes = pixmap.tobytes("png")
     finally:

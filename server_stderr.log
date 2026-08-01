@@ -1,0 +1,151 @@
+INFO:     Started server process [7800]
+INFO:     Waiting for application startup.
+Starting new HTTP connection (1): localhost:9000
+http://localhost:9000 "GET /books?location= HTTP/1.1" 200 0
+http://localhost:9000 "HEAD /books HTTP/1.1" 200 0
+http://localhost:9000 "GET /highlights?location= HTTP/1.1" 200 0
+http://localhost:9000 "HEAD /highlights HTTP/1.1" 200 0
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+select pg_catalog.version()
+[raw sql] ()
+select current_schema()
+[raw sql] ()
+show standard_conforming_strings
+[raw sql] ()
+BEGIN (implicit)
+SELECT 1
+[generated in 0.01988s] ()
+ROLLBACK
+connect_tcp.started host='localhost' port=6333 local_address=None timeout=5 socket_options=None
+connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB559AF90>
+send_request_headers.started request=<Request [b'GET']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'GET']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'GET']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'transfer-encoding', b'chunked'), (b'vary', b'accept-encoding, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'), (b'content-encoding', b'zstd'), (b'content-type', b'application/json'), (b'date', b'Sun, 19 Jul 2026 05:09:15 GMT')])
+HTTP Request: GET http://localhost:6333/collections/documents "HTTP/1.1 200 OK"
+receive_response_body.started request=<Request [b'GET']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+close.started
+close.complete
+{"timestamp": "2026-07-19T05:09:15", "level": "INFO", "endpoint": "/health", "method": "GET", "tenant_id": "unknown", "duration_ms": 919, "status_code": 200}
+BEGIN (implicit)
+SELECT users.id, users.tenant_id, users.email, users.hashed_pw, users.role, users.is_active, users.is_superuser, users.is_verified, users.created_at 
+FROM users 
+WHERE lower(users.email) = lower($1::VARCHAR)
+[generated in 0.00144s] ('superadmin@al-mawsuat.local',)
+ROLLBACK
+{"timestamp": "2026-07-19T05:09:15", "level": "INFO", "endpoint": "/auth/login", "method": "POST", "tenant_id": "unknown", "duration_ms": 409, "status_code": 401}
+GOOGLE_TRANSLATE_API_KEY not set, defaulting to 'ar'
+connect_tcp.started host='generativelanguage.googleapis.com' port=443 local_address=None timeout=300.0 socket_options=None
+connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB55F1950>
+start_tls.started ssl_context=<ssl.SSLContext object at 0x0000020BB55D1950> server_hostname='generativelanguage.googleapis.com' timeout=300.0
+start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB55F1BD0>
+send_request_headers.started request=<Request [b'POST']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'POST']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'POST']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/json; charset=UTF-8'), (b'Vary', b'Origin'), (b'Vary', b'X-Origin'), (b'Vary', b'Referer'), (b'Content-Encoding', b'gzip'), (b'Date', b'Sun, 19 Jul 2026 05:10:02 GMT'), (b'Server', b'scaffolding on HTTPServer2'), (b'X-XSS-Protection', b'0'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-Content-Type-Options', b'nosniff'), (b'Server-Timing', b'gfet4t7; dur=486'), (b'Alt-Svc', b'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000'), (b'Transfer-Encoding', b'chunked')])
+HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-embedding-001:batchEmbedContents "HTTP/1.1 200 OK"
+receive_response_body.started request=<Request [b'POST']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+close.started
+close.complete
+connect_tcp.started host='localhost' port=6333 local_address=None timeout=10 socket_options=None
+Starting new HTTP connection (1): localhost:7700
+connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB556EC40>
+send_request_headers.started request=<Request [b'POST']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'POST']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'POST']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 400, b'Bad Request', [(b'transfer-encoding', b'chunked'), (b'content-type', b'application/json'), (b'content-encoding', b'zstd'), (b'vary', b'accept-encoding, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'), (b'date', b'Sun, 19 Jul 2026 05:09:18 GMT')])
+HTTP Request: POST http://localhost:6333/collections/documents/points/search "HTTP/1.1 400 Bad Request"
+receive_response_body.started request=<Request [b'POST']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+close.started
+close.complete
+Qdrant vector search failed
+Traceback (most recent call last):
+  File "E:\Projects\al-mawsuat-backend\app\rag\retriever.py", line 23, in vector_search
+    results = await client.search(
+              ^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\uviip\AppData\Local\Programs\Python\Python313\Lib\site-packages\qdrant_client\async_qdrant_client.py", line 321, in search
+    return await self._client.search(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<14 lines>...
+    )
+    ^
+  File "C:\Users\uviip\AppData\Local\Programs\Python\Python313\Lib\site-packages\qdrant_client\async_qdrant_remote.py", line 393, in search
+    search_result = await self.http.points_api.search_points(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<14 lines>...
+    )
+    ^
+  File "C:\Users\uviip\AppData\Local\Programs\Python\Python313\Lib\site-packages\qdrant_client\http\api\points_api.py", line 1039, in search_points
+    return await self._build_for_search_points(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\uviip\AppData\Local\Programs\Python\Python313\Lib\site-packages\qdrant_client\http\api_client.py", line 148, in request
+    return await self.send(request, type_)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\uviip\AppData\Local\Programs\Python\Python313\Lib\site-packages\qdrant_client\http\api_client.py", line 171, in send
+    raise UnexpectedResponse.for_response(response)
+qdrant_client.http.exceptions.UnexpectedResponse: Unexpected Response: 400 (Bad Request)
+Raw response content:
+b'{"status":{"error":"Wrong input: Vector dimension error: expected dim: 1024, got 3072"},"time":0.00069318}'
+http://localhost:7700 "POST /indexes/documents/search HTTP/1.1" 200 None
+Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-a3e85403-8c8d-4ba8-9131-a53699c0a0ca', 'content': None, 'json_data': {'messages': [{'role': 'user', 'content': 'Rephrase this question in Arabic: \u0645\u0627 \u0645\u0639\u0646\u0649 \u0627\u0644\u0625\u064a\u0645\u0627\u0646'}], 'model': 'llama-3.3-70b-versatile', 'max_tokens': 256, 'temperature': 0.7}}
+Sending HTTP Request: POST https://api.groq.com/openai/v1/chat/completions
+connect_tcp.started host='api.groq.com' port=443 local_address=None timeout=240.0 socket_options=None
+connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB5683360>
+start_tls.started ssl_context=<ssl.SSLContext object at 0x0000020BB55D34D0> server_hostname='api.groq.com' timeout=240.0
+start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB59FB2F0>
+send_request_headers.started request=<Request [b'POST']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'POST']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'POST']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Sun, 19 Jul 2026 05:10:06 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Cache-Control', b'private, max-age=0, no-store, no-cache, must-revalidate'), (b'Server', b'cloudflare'), (b'vary', b'Origin'), (b'x-groq-region', b'bom'), (b'x-ratelimit-limit-requests', b'1000'), (b'x-ratelimit-limit-tokens', b'12000'), (b'x-ratelimit-remaining-requests', b'999'), (b'x-ratelimit-remaining-tokens', b'11696'), (b'x-ratelimit-reset-requests', b'1m26.4s'), (b'x-ratelimit-reset-tokens', b'1.52s'), (b'x-request-id', b'req_01kxwcg4qkfwh9frej0dy6h4j8'), (b'via', b'1.1 google'), (b'cf-cache-status', b'DYNAMIC'), (b'set-cookie', b'__cf_bm=Bt4DOp5lT8FdCvEyY0i8LDt_H4EcmXIcvxsu.eBhzK0-1784437805.7967794-1.0.1.1-j6coN8L5zuc37djwGIEygwSVKh0DIiYKeupW4jU7ioYiGDB9mcqdFeWZebRjiJFA14Dw834tKUhcy9wOG0.Arm99zuDPU.sQBNC5CfAlIL1eJgATidPTOXG6pby04fp8; HttpOnly; SameSite=None; Secure; Path=/; Domain=groq.com; Expires=Sun, 19 Jul 2026 05:40:06 GMT'), (b'Strict-Transport-Security', b'max-age=15552000'), (b'Content-Encoding', b'gzip'), (b'CF-RAY', b'a1d737be3ac82c7b-BOM'), (b'alt-svc', b'h3=":443"; ma=86400')])
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+receive_response_body.started request=<Request [b'POST']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+HTTP Response: POST https://api.groq.com/openai/v1/chat/completions "200 OK" Headers({'date': 'Sun, 19 Jul 2026 05:10:06 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'cache-control': 'private, max-age=0, no-store, no-cache, must-revalidate', 'server': 'cloudflare', 'vary': 'Origin', 'x-groq-region': 'bom', 'x-ratelimit-limit-requests': '1000', 'x-ratelimit-limit-tokens': '12000', 'x-ratelimit-remaining-requests': '999', 'x-ratelimit-remaining-tokens': '11696', 'x-ratelimit-reset-requests': '1m26.4s', 'x-ratelimit-reset-tokens': '1.52s', 'x-request-id': 'req_01kxwcg4qkfwh9frej0dy6h4j8', 'via': '1.1 google', 'cf-cache-status': 'DYNAMIC', 'set-cookie': '__cf_bm=Bt4DOp5lT8FdCvEyY0i8LDt_H4EcmXIcvxsu.eBhzK0-1784437805.7967794-1.0.1.1-j6coN8L5zuc37djwGIEygwSVKh0DIiYKeupW4jU7ioYiGDB9mcqdFeWZebRjiJFA14Dw834tKUhcy9wOG0.Arm99zuDPU.sQBNC5CfAlIL1eJgATidPTOXG6pby04fp8; HttpOnly; SameSite=None; Secure; Path=/; Domain=groq.com; Expires=Sun, 19 Jul 2026 05:40:06 GMT', 'strict-transport-security': 'max-age=15552000', 'content-encoding': 'gzip', 'cf-ray': 'a1d737be3ac82c7b-BOM', 'alt-svc': 'h3=":443"; ma=86400'})
+request_id: req_01kxwcg4qkfwh9frej0dy6h4j8
+{"timestamp": "2026-07-19T05:09:21", "level": "INFO", "endpoint": "/ask", "method": "POST", "tenant_id": "unknown", "duration_ms": 5276, "status_code": 200}
+BEGIN (implicit)
+SELECT 1
+[cached since 6.398s ago] ()
+ROLLBACK
+connect_tcp.started host='localhost' port=6333 local_address=None timeout=5 socket_options=None
+connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x0000020BB5B76580>
+send_request_headers.started request=<Request [b'GET']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'GET']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'GET']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'transfer-encoding', b'chunked'), (b'content-type', b'application/json'), (b'vary', b'accept-encoding, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'), (b'content-encoding', b'zstd'), (b'date', b'Sun, 19 Jul 2026 05:09:21 GMT')])
+HTTP Request: GET http://localhost:6333/collections/documents "HTTP/1.1 200 OK"
+receive_response_body.started request=<Request [b'GET']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+close.started
+close.complete
+{"timestamp": "2026-07-19T05:09:21", "level": "INFO", "endpoint": "/health", "method": "GET", "tenant_id": "unknown", "duration_ms": 466, "status_code": 200}

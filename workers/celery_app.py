@@ -32,6 +32,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "dispatch-pending": {
+        "task": "workers.celery_app.dispatch_pending",
+        "schedule": 60.0,
+    },
     "reap-stale-jobs": {
         "task": "workers.celery_app.reap_stale_jobs",
         "schedule": 300.0,
@@ -45,7 +49,11 @@ async def _run_with_cleanup(book_id: str, minio_path: str, tenant_id: str, task_
             stmt = (
                 update(ProcessingJob)
                 .where(ProcessingJob.book_id == book_id)
-                .values(task_id=task_id, started_at=datetime.now(timezone.utc))
+                .values(
+                    task_id=task_id,
+                    status="extracting",
+                    started_at=datetime.now(timezone.utc),
+                )
             )
             await session.execute(stmt)
             await session.commit()
@@ -56,6 +64,14 @@ async def _run_with_cleanup(book_id: str, minio_path: str, tenant_id: str, task_
         except Exception as inner:
             logger.error("Failed to mark job %s as failed: %s", book_id, inner)
         raise
+    finally:
+        # asyncio.run() creates a fresh event loop per task; drop the cached
+        # redis client so its pool is never reused across closed loops.
+        from app.core.redis import close_redis
+        try:
+            await close_redis()
+        except Exception as inner:
+            logger.warning("Failed to close redis client: %s", inner)
 
 
 async def _mark_failed(book_id: str, exc: Exception) -> None:
@@ -89,7 +105,7 @@ async def _mark_failed(book_id: str, exc: Exception) -> None:
 
 @celery_app.task(
     bind=True, max_retries=0, acks_late=True,
-    time_limit=7200, soft_time_limit=6900,
+    time_limit=43200, soft_time_limit=42000,
 )
 def process_book(
     self,
@@ -98,6 +114,61 @@ def process_book(
     tenant_id: str = settings.DEFAULT_TENANT_ID,
 ) -> None:
     asyncio.run(_run_with_cleanup(book_id, minio_path, tenant_id, self.request.id or ""))
+
+
+@celery_app.task
+def dispatch_pending() -> None:
+    async def _dispatch() -> None:
+        r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        try:
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(ProcessingJob).where(
+                        ProcessingJob.status == "queued",
+                    )
+                )
+                jobs = result.scalars().all()
+                for job in jobs:
+                    lock_key = f"dispatch:lock:{job.book_id}"
+                    locked = await r.setnx(lock_key, "1")
+                    if not locked:
+                        continue
+                    await r.expire(lock_key, 120)
+                    try:
+                        if job.task_id:
+                            key = f"worker:heartbeat:{job.book_id}"
+                            alive = await r.exists(key)
+                            if alive:
+                                continue
+                        book_result = await session.execute(
+                            select(Book).where(Book.id == job.book_id)
+                        )
+                        book = book_result.scalar_one_or_none()
+                        if book is None:
+                            await session.execute(
+                                sa_delete(ProcessingJob).where(ProcessingJob.id == job.id)
+                            )
+                            continue
+                        await session.execute(
+                            update(ProcessingJob)
+                            .where(ProcessingJob.id == job.id)
+                            .values(status="extracting", started_at=datetime.now(timezone.utc))
+                        )
+                        await session.commit()
+                        process_book.delay(
+                            book_id=str(job.book_id),
+                            minio_path=book.minio_path or "",
+                            tenant_id=job.tenant_id,
+                        )
+                    finally:
+                        await r.delete(lock_key)
+                await session.commit()
+        finally:
+            try:
+                await r.aclose()
+            except RuntimeError:
+                pass
+    asyncio.run(_dispatch())
 
 
 @celery_app.task
@@ -145,5 +216,8 @@ def reap_stale_jobs() -> None:
                         tenant_id=job.tenant_id,
                     )
         finally:
-            await r.aclose()
+            try:
+                await r.aclose()
+            except RuntimeError:
+                pass
     asyncio.run(_reap())
