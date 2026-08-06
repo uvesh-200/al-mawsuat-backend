@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       wget \
     && rm -rf /var/lib/apt/lists/* \
     && wget -q -O /usr/share/tesseract-ocr/5/tessdata/ara.traineddata \
-      https://github.com/tesseract-ocr/tessdata_fast/raw/main/ara.traineddata
+      https://github.com/tesseract-ocr/tessdata_fast/raw/main/ara.traineddata \
+    && wget -q -O /usr/share/tesseract-ocr/5/tessdata/eng.traineddata \
+      https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple

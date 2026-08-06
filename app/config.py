@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     GEMINI_API_BASE: str = "https://generativelanguage.googleapis.com"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
     GEMINI_OCR_MODEL: str = "gemini-3.1-flash-lite"
+    GEMINI_TRANSLATE_MODEL: str = "gemini-3.1-flash-lite"
 
     OCR_ENGINE: str = "tesseract"
     OCR_DPI: int = 200
@@ -37,6 +38,35 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
     GROQ_LLM_MODEL: str = "llama-3.3-70b-versatile"
+
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+    DEEPSEEK_LLM_MODEL: str = "deepseek-v4-flash"
+
+    GEMINI_LLM_MODEL: str = "gemini-3.1-flash-lite"
+
+    # Minimum reranked match score of the top retrieved chunk before the
+    # system generates an answer. Below this, the system refuses with a
+    # no-result message instead of producing a vague answer from weak
+    # fragments. Reranked scores blend vector RRF, term overlap (0-1) and
+    # entity boost. The gate also accepts matches whose raw Qdrant cosine
+    # clears RAG_VECTOR_MIN_CONFIDENCE (see below), which rescues long,
+    # genuinely-answerable English questions whose lexical overlap is diluted
+    # below this threshold. Observed corpus behaviour: relevant lexical
+    # matches score ~0.36-0.52, Arabic-overlap false positives (e.g. a riba
+    # question matching an unrelated Arabic chunk) reach ~0.27, so this must
+    # stay above ~0.28 unless the vector gate is relied on.
+    RAG_MIN_CONFIDENCE_SCORE: float = 0.30
+
+    # Second confidence signal for the quality gate: the raw Qdrant cosine of
+    # the top vector hit, measured before reranking. The reranked score is
+    # dominated by lexical overlap, so a long answerable question ("Which two
+    # Qur'anic verses...") can fall below RAG_MIN_CONFIDENCE_SCORE even when
+    # its top vector hit is semantically close. Observed: relevant English
+    # content scores 0.65-0.78, overlapping-but-irrelevant noise 0.44-0.57.
+    # The gate generates when EITHER best_score >= RAG_MIN_CONFIDENCE_SCORE
+    # OR top_vector_score >= this value.
+    RAG_VECTOR_MIN_CONFIDENCE: float = 0.65
 
     GOOGLE_TRANSLATE_API_KEY: str = ""
     GOOGLE_TRANSLATE_BASE_URL: str = "https://translation.googleapis.com/language/translate/v2"

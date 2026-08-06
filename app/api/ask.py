@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from datetime import datetime, timezone
 from typing import Annotated
@@ -13,9 +14,10 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.core.auth import get_optional_current_user
 from app.core.redis import get_redis
+from app.core.translation import detect_language
 from app.models.schemas import AnswerResponse, SourceItem
 from app.models.tables import User
-from app.rag.agent import rag_graph
+from app.rag.agent import LLM_ERROR_FALLBACK, NO_RESULT_REFUSALS, rag_graph
 from app.rag.cache import get_cached_answer, set_cached_answer
 
 router = APIRouter(prefix="/ask", tags=["ask"])
@@ -26,9 +28,21 @@ NO_RESULT_PATTERNS = (
     "after multiple attempts, no relevant information",
     "لا توجد معلومات ذات صلة",
     "لا توجد معلومات",
+    "لا معلومات",
     "لم يتم العثور على معلومات",
     "کوئی متعلقہ معلومات نہیں",
 )
+
+_PLACEHOLDER_RE = re.compile(r"\[(?:Book Name|Page X|Chapter Y)[^\]]*\]")
+
+
+def _strip_placeholders(answer: str) -> str:
+    return _PLACEHOLDER_RE.sub("", answer or "").strip()
+
+
+async def _localized_refusal(question: str) -> str:
+    lang = await detect_language(question)
+    return NO_RESULT_REFUSALS.get(lang, "No relevant information found in the provided sources.")
 
 
 def _looks_like_no_result(answer: str) -> bool:
@@ -39,6 +53,27 @@ def _looks_like_no_result(answer: str) -> bool:
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4096)
     language: str | None = None
+    book_id: str | None = None
+
+
+# A stored bbox is only usable for page-image highlighting if it is a real
+# PDF-point rectangle. The Gemini text-only OCR path used to emit synthetic
+# "layout" boxes with coordinates that can exceed the page size by orders of
+# magnitude (x up to ~17800 on a ~600pt-wide page); such boxes are dropped so
+# the UI falls back to the render-time text-locate path instead of drawing a
+# garbage rectangle over the page image.
+def _plausible_bbox(bbox: list[float]) -> bool:
+    if len(bbox) != 4:
+        return False
+    x0, y0, x1, y1 = bbox
+    if not all(isinstance(v, (int, float)) for v in (x0, y0, x1, y1)):
+        return False
+    if x0 < 0 or y0 < 0 or x1 <= x0 or y1 <= y0:
+        return False
+    # Real OCR boxes live inside the PDF page's point space (a page is at most
+    # a few thousand points wide/tall for large-format books); synthetic boxes
+    # from the char-width heuristic go far beyond this.
+    return x1 <= 3000 and y1 <= 3000
 
 
 def _build_source(
@@ -59,13 +94,27 @@ def _build_source(
                 bbox_list = [float(v) for v in bbox_raw]
             except (ValueError, TypeError):
                 bbox_list = None
+    if bbox_list is not None and not _plausible_bbox(bbox_list):
+        bbox_list = None
 
     highlight_url = None
     book_id = str(s.get("book_id") or "")
     page = s.get("page_start")
-    if book_id and page is not None and bbox_list and len(bbox_list) == 4:
-        bbox_str = f"{bbox_list[0]},{bbox_list[1]},{bbox_list[2]},{bbox_list[3]}"
-        highlight_url = f"/highlight?book_id={book_id}&page={page}&bbox={bbox_str}"
+    if book_id and page is not None:
+        query = f"book_id={book_id}&page={page}"
+        if bbox_list and len(bbox_list) == 4:
+            bbox_str = f"{bbox_list[0]},{bbox_list[1]},{bbox_list[2]},{bbox_list[3]}"
+            query += f"&bbox={bbox_str}"
+        if s.get("text"):
+            # The chunk head corresponds to the page_start page being
+            # highlighted; the highlight endpoint uses this snippet to locate
+            # the passage on the page image (tesseract LCS match) when the
+            # stored bbox is missing or a synthetic full-page box.
+            import urllib.parse
+
+            snippet = " ".join(s["text"].split())[:600]
+            query += f"&text={urllib.parse.quote(snippet)}"
+        highlight_url = f"/highlight?{query}"
 
     return SourceItem(
         rank=rank,
@@ -75,6 +124,7 @@ def _build_source(
         book_type=s.get("book_type"),
         chapter=s.get("chapter"),
         page=page,
+        page_start=page,
         relevance_score=s.get("score", 0.0),
         text=s.get("text") or None,
         bbox=bbox_list,
@@ -108,13 +158,17 @@ async def _record_stats(
         logger.exception("Failed to record stats")
 
 
-def _initial_state(question: str, tenant_id: str, language: str | None = None) -> dict:
+def _initial_state(
+    question: str, tenant_id: str, language: str | None = None, book_id: str | None = None
+) -> dict:
     return {
         "question": question,
         "tenant_id": tenant_id,
+        "book_id": book_id,
         "language": language,
         "passages": [],
         "best_score": 0.0,
+        "top_vector_score": 0.0,
         "retry_count": 0,
         "answer": "",
         "sources": [],
@@ -131,9 +185,10 @@ async def ask_json(
 ) -> AnswerResponse:
     tenant_id = user.tenant_id if user else "default"
     question = body.question
+    book_id = body.book_id
     start = time.monotonic()
 
-    cached = await get_cached_answer(tenant_id, question)
+    cached = await get_cached_answer(tenant_id, question, book_id)
     if cached is not None:
         sources = [
             _build_source(s, i + 1, tenant_id)
@@ -151,15 +206,18 @@ async def ask_json(
 
     try:
         result = await asyncio.wait_for(
-            rag_graph.ainvoke(_initial_state(question, tenant_id, body.language)),
+            rag_graph.ainvoke(_initial_state(question, tenant_id, body.language, book_id)),
             timeout=280.0,
         )
     except asyncio.TimeoutError:
         elapsed = int((time.monotonic() - start) * 1000)
         await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
         raise HTTPException(status_code=504, detail="Request timed out. Please try again later.")
-    answer = result.get("answer", "")
-    no_result = result.get("no_result", False) or _looks_like_no_result(answer)
+    answer = _strip_placeholders(result.get("answer", ""))
+    graph_no_result = result.get("no_result", False)
+    no_result = graph_no_result or _looks_like_no_result(answer)
+    if no_result and not graph_no_result:
+        answer = await _localized_refusal(question)
     raw_sources = result.get("sources", [])
 
     sources = [
@@ -172,7 +230,10 @@ async def ask_json(
         "no_result": no_result,
         "sources": raw_sources,
     }
-    await set_cached_answer(tenant_id, question, cache_body)
+    # Never cache LLM-error fallbacks: a transient provider outage would
+    # otherwise serve the error for the whole cache TTL.
+    if answer != LLM_ERROR_FALLBACK:
+        await set_cached_answer(tenant_id, question, cache_body)
 
     elapsed = int((time.monotonic() - start) * 1000)
     await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
@@ -189,6 +250,7 @@ async def ask_json(
 async def ask_stream(
     question: str,
     language: str | None = None,
+    book_id: str | None = None,
     user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ):
     tenant_id = user.tenant_id if user else "default"
@@ -200,7 +262,7 @@ async def ask_stream(
             media_type="text/event-stream",
         )
 
-    cached = await get_cached_answer(tenant_id, question)
+    cached = await get_cached_answer(tenant_id, question, book_id)
     if cached is not None:
         answer = cached["answer"]
         no_result = cached.get("no_result", False)
@@ -211,7 +273,7 @@ async def ask_stream(
     else:
         try:
             result = await asyncio.wait_for(
-                rag_graph.ainvoke(_initial_state(question, tenant_id, language)),
+                rag_graph.ainvoke(_initial_state(question, tenant_id, language, book_id)),
                 timeout=280.0,
             )
         except asyncio.TimeoutError:
@@ -223,8 +285,11 @@ async def ask_stream(
                 iter([f"data: {error_data}\n\ndata: {done_data}\n\n"]),
                 media_type="text/event-stream",
             )
-        answer = result.get("answer", "")
-        no_result = result.get("no_result", False) or _looks_like_no_result(answer)
+        answer = _strip_placeholders(result.get("answer", ""))
+        graph_no_result = result.get("no_result", False)
+        no_result = graph_no_result or _looks_like_no_result(answer)
+        if no_result and not graph_no_result:
+            answer = await _localized_refusal(question)
         raw_sources = result.get("sources", [])
         was_cached = False
         cache_body = {
@@ -232,7 +297,7 @@ async def ask_stream(
             "no_result": no_result,
             "sources": raw_sources,
         }
-        await set_cached_answer(tenant_id, question, cache_body)
+        await set_cached_answer(tenant_id, question, cache_body, book_id)
         elapsed = int((time.monotonic() - start) * 1000)
         await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
 
@@ -250,6 +315,7 @@ async def ask_stream(
                 sep = " " if i > 0 else ""
                 yield f"data: {json.dumps({'type': 'token', 'content': sep + word})}\n\n"
 
+        yield f"data: {json.dumps({'type': 'no_result', 'no_result': no_result})}\n\n"
         yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 

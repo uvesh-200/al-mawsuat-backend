@@ -1,51 +1,147 @@
 import asyncio
 import logging
+import re
 from typing import Annotated, TypedDict
 
+import httpx
 from langgraph.graph import END, StateGraph
 from openai import AsyncOpenAI
 
 from app.config import settings
 from app.core.embedder import embed_query
-from app.core.translation import detect_language, translate_for_retrieval
-from app.rag.reranker import rerank
+from app.core.translation import detect_language, translate_for_retrieval, translate_to_english
+from app.rag.reranker import _query_terms, normalise_transliteration, rerank
 from app.rag.retriever import keyword_search, vector_search
 
 logger = logging.getLogger(__name__)
 
-llm_client: AsyncOpenAI | None = None
+
+def _status_of(exc: Exception) -> int | None:
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return status
 
 
-def _get_llm_client() -> AsyncOpenAI:
-    global llm_client
-    if llm_client is None:
-        llm_client = AsyncOpenAI(
-            base_url=settings.GROQ_BASE_URL,
-            api_key=settings.GROQ_API_KEY,
-            timeout=240.0,
+class _OpenAIProvider:
+    """Any OpenAI-compatible chat endpoint (Groq, DeepSeek, …)."""
+
+    def __init__(self, name: str, base_url: str, api_key: str, model: str) -> None:
+        self.name = name
+        self._model = model
+        # max_retries=0: the SDK's built-in 429 backoff (up to 12s+ per attempt)
+        # stacks on top of the provider-chain retries below and makes failures
+        # take minutes. Let the chain own all retry/backoff logic.
+        self._client = AsyncOpenAI(
+            base_url=base_url, api_key=api_key, timeout=240.0, max_retries=0
         )
-    return llm_client
+
+    async def complete(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
+        resp = await self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return resp.choices[0].message.content or ""
 
 
-async def _chat_with_retry(client: AsyncOpenAI, **kwargs) -> str:
-    for attempt in range(3):
-        try:
-            resp = await client.chat.completions.create(**kwargs)
-            return resp.choices[0].message.content or ""
-        except Exception as exc:
-            status = getattr(getattr(exc, "response", None), "status_code", None)
-            if status == 429 and attempt < 2:
-                await asyncio.sleep(5 * (attempt + 1))
-                continue
-            raise
+class _GeminiProvider:
+    """Native Gemini generateContent REST fallback (not OpenAI-compatible)."""
+
+    def __init__(self) -> None:
+        self.name = "gemini"
+        self._model = settings.GEMINI_LLM_MODEL
+
+    async def complete(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
+        system_parts: list[str] = []
+        user_parts: list[str] = []
+        for m in messages:
+            if m.get("role") == "system":
+                system_parts.append(m.get("content", ""))
+            else:
+                user_parts.append(m.get("content", ""))
+        body: dict = {
+            "contents": [{"parts": [{"text": "\n\n".join(user_parts)}]}],
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+        }
+        if system_parts:
+            body["systemInstruction"] = {"parts": [{"text": "\n".join(system_parts)}]}
+        url = f"{settings.GEMINI_API_BASE}/v1beta/models/{self._model}:generateContent"
+        async with httpx.AsyncClient(timeout=240.0) as client:
+            resp = await client.post(url, params={"key": settings.GEMINI_API_KEY}, json=body)
+        if resp.status_code != 200:
+            raise httpx.HTTPStatusError(
+                f"Gemini returned {resp.status_code}", request=resp.request, response=resp
+            )
+        candidates = resp.json().get("candidates") or []
+        if not candidates:
+            raise RuntimeError("Gemini returned no candidates")
+        parts = candidates[0].get("content", {}).get("parts", [])
+        return "".join(p.get("text", "") for p in parts)
+
+
+def _build_providers() -> list:
+    providers: list = []
+    if settings.GROQ_API_KEY:
+        providers.append(
+            _OpenAIProvider("groq", settings.GROQ_BASE_URL, settings.GROQ_API_KEY, settings.GROQ_LLM_MODEL)
+        )
+    if settings.DEEPSEEK_API_KEY:
+        providers.append(
+            _OpenAIProvider(
+                "deepseek", settings.DEEPSEEK_BASE_URL, settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_LLM_MODEL
+            )
+        )
+    if settings.GEMINI_API_KEY:
+        providers.append(_GeminiProvider())
+    return providers
+
+
+async def _chat_with_retry(
+    messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024
+) -> str:
+    """Try each configured provider in order; retry 429s, then move on.
+
+    Quota (429), insufficient balance (402), auth (401/403), server (5xx)
+    and network errors on one provider do not fail the request while another
+    provider still has capacity.
+    """
+    providers = _build_providers()
+    if not providers:
+        raise RuntimeError("No LLM provider is configured")
+    last_exc: Exception | None = None
+    for provider in providers:
+        for attempt in range(3):
+            try:
+                text = await provider.complete(messages, temperature, max_tokens)
+                if text:
+                    return text
+                last_exc = RuntimeError(f"{provider.name} returned an empty completion")
+            except Exception as exc:
+                last_exc = exc
+                status = _status_of(exc)
+                logger.warning(
+                    "LLM provider '%s' attempt %d failed (HTTP %s): %s",
+                    provider.name, attempt + 1, status if status is not None else "network", exc,
+                )
+                if status == 429 and attempt < 2:
+                    await asyncio.sleep(5 * (attempt + 1))
+                    continue
+            break
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("All LLM providers returned empty completions")
 
 
 class AgentState(TypedDict):
     question: str
     tenant_id: str
+    book_id: str | None
     language: str | None
     passages: list[dict]
     best_score: float
+    top_vector_score: float
     retry_count: int
     answer: str
     sources: list[dict]
@@ -56,25 +152,45 @@ class AgentState(TypedDict):
 
 MAX_PASSAGE_TOKENS = 800
 LANGUAGE_NAMES = {"ar": "Arabic", "ur": "Urdu", "en": "English"}
+
 GROUNDING_PROMPT_SYSTEM = """\
 You are an Islamic knowledge assistant specialising in the Deobandi tradition.
-Answer ONLY using the passages provided. Do not use your own knowledge.
+Answer ONLY using the passages provided below. Do not use your own knowledge.
 
 Rules:
 1. If the passages do not answer the question, respond with exactly:
    No relevant information found in the provided sources.
    (This one sentence is always written in English, even if the question is
    in another language. Only the sentence itself; never comment on it.)
-2. Cite every claim in the format [Book Name, Page X, Chapter Y], using ONLY
-   the metadata shown for each passage. Never invent or guess a book name,
-   page number, or chapter. If a field is missing, omit it from the citation
-   (e.g. [Page 3]). Do not use the passage numbers in citations.
-3. Your ENTIRE answer must be written in {language}. Do not switch languages
+
+2. CITATION FORMAT — STRICT:
+   Every passage is tagged [P1], [P2], … [PN].
+   You MUST cite every factual claim using ONLY these tags together with the
+   passage's page number, for example: [P2, Page 9] or [P1, Page 3].
+   Never invent a page number. Never write a citation without a [Pn] tag.
+   Never use a passage index outside the range 1–{n_passages}.
+
+3. CITATION SCOPING — cite each claim in the sentence it appears, not pooled
+   at the end. If consecutive sentences come from the same passage, a single
+   shared citation after the last sentence is acceptable.
+
+4. CONTRADICTIONS — If two or more passages give different answers to the same
+   question, or use different names/terms for what might be the same entity,
+   state each passage's claim separately and note the disagreement explicitly.
+   Do NOT merge conflicting claims into one statement.
+
+5. SPECIFICITY — When the question asks what a scholar said, believed, or
+   wrote, reproduce the specific reasoning and details present in the source
+   passage. Prioritise fidelity to the source text over brevity.
+
+6. Your ENTIRE answer must be written in {language}. Do not switch languages
    and do not include Arabic or Urdu passages in your answer, except brief
    names or single terms when necessary.
 
 PASSAGES:
 {passages}"""
+
+LLM_ERROR_FALLBACK = "I encountered an error while generating the answer. Please try again."
 
 NO_RESULT_REFUSALS = {
     "ar": "لا توجد معلومات ذات صلة في المصادر المقدمة.",
@@ -83,10 +199,31 @@ NO_RESULT_REFUSALS = {
 
 _URDU_SPECIFIC = set("\u0679\u067A\u067B\u067C\u067D\u067E\u067F\u0680\u0688\u0689\u068A\u068B\u068C\u068D\u068E\u068F\u0691\u0692\u0693\u0694\u0695\u0696\u0697\u0698\u0699\u06A0\u06A1\u06A2\u06A3\u06A4\u06A5\u06A6\u06A7\u06A8\u06A9\u06AA\u06AB\u06AC\u06AD\u06AE\u06AF\u06B0\u06B1\u06B2\u06B3\u06B4\u06B5\u06B6\u06B7\u06B8\u06B9\u06BA\u06BB\u06BC\u06BD\u06BE\u06BF\u06C0\u06C1\u06C2\u06C3\u06C4\u06C5\u06C6\u06C7\u06C8\u06C9\u06CA\u06CB\u06CC\u06CD\u06CE\u06CF\u06D0\u06D1\u06D2\u06D3\u06D4\u06D5\u06D6\u06D7\u06D8\u06D9\u06DA\u06DB\u06DC\u06DD\u06DE\u06DF\u06E0\u06E1\u06E2\u06E3\u06E4\u06E5\u06E6\u06E7\u06E8\u06E9\u06EA\u06EB\u06EC\u06ED\u06EE\u06EF\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9\u06FA\u06FB\u06FC\u06FD\u06FE\u06FF\u0640\u0626\u0624\u0671\u06C0")
 
+# Regex to match structured citation tags produced by the LLM
+_CITATION_TAG_RE = re.compile(r"\[P(\d+)(?:,\s*Page\s+(\d+))?\]")
+
+# Individual tag inside a bracket group, e.g. "P1, Page 2" within "[P1, Page 2; P2, Page 1]"
+_TAG_RE = re.compile(r"P(\d+)(?:\s*,\s*Page\s+(\d+))?")
+
+# A bracket group that contains one or more citation tags (single or "; "-combined)
+_CITATION_BRACKET_RE = re.compile(r"\[[^\]]*P\d[^\]]*\]")
+
+
+def _iter_tag_indices(answer: str):
+    """Yield every passage index cited in the answer, including tags that are
+    combined inside a single bracket group like [P1, Page 2; P2, Page 1]."""
+    for bracket in _CITATION_BRACKET_RE.finditer(answer):
+        for m in _TAG_RE.finditer(bracket.group(0)):
+            yield int(m.group(1))
+
+# Arabic honorific / nisba suffixes used to detect named-entity queries
+_ARABIC_ENTITY_RE = re.compile(
+    r"[\u0600-\u06FF]+(?:الشريعة|الدين|الإسلام|الملة|الله|الرحمن|"
+    r"بن\s+[\u0600-\u06FF]+|ابن\s+[\u0600-\u06FF]+)"
+)
+
 
 def _answer_language(answer: str) -> str:
-    import re
-
     latin = len(re.findall(r"[A-Za-z]", answer))
     arabic = len(re.findall(r"[\u0600-\u06FF]", answer))
     if arabic == 0:
@@ -99,23 +236,23 @@ def _answer_language(answer: str) -> str:
     return "ar"
 
 
-async def _enforce_language(client: AsyncOpenAI, answer: str, lang_name: str) -> str:
+async def _enforce_language(answer: str, lang_name: str) -> str:
     try:
         rewritten = await _chat_with_retry(
-            client,
-            model=settings.GROQ_LLM_MODEL,
             messages=[
                 {
                     "role": "user",
                     "content": (
                         f"Rewrite the following answer entirely in {lang_name}. "
-                        "Keep the citations [Book Name, Page X, Chapter Y] exactly as they are. "
+                        "Keep all citation brackets [Pn, Page X] exactly as they "
+                        "appear in the original answer. "
+                        "Do not add, modify, or remove any citations."
                         f"Answer:\n{answer}"
                     ),
                 }
             ],
             temperature=0.2,
-            max_tokens=256,
+            max_tokens=1024,
         )
         return rewritten.strip() or answer
     except Exception:
@@ -131,6 +268,7 @@ def _truncate_text(text: str, max_tokens: int = MAX_PASSAGE_TOKENS) -> str:
 
 
 def _format_passages(passages: list[dict]) -> str:
+    """Format passages with stable [P1]…[PN] tags that the LLM must cite."""
     lines: list[str] = []
     for i, p in enumerate(passages, 1):
         text = _truncate_text(p.get("text", ""))
@@ -143,19 +281,118 @@ def _format_passages(passages: list[dict]) -> str:
             source += f", Page {page}"
         if chapter:
             source += f", {chapter}"
-        lines.append(f"Passage {i}: {text}\n    Source: {source}")
+        lines.append(f"[P{i}] {text}\n    Source: {source}")
     return "\n\n".join(lines)
+
+
+def _resolve_citations(answer: str, passages: list[dict]) -> str:
+    """Replace [Pn, Page X] tag groups with canonical [Book, Page X] strings.
+
+    Handles both single tags ([P1, Page 2]) and combined groups the LLM may
+    produce ([P1, Page 2; P2, Page 1]). This ensures user-visible citations
+    reference actual book names and page numbers from the retrieved chunk
+    metadata — never from the LLM's memory.
+    """
+    def _replace(m: re.Match) -> str:
+        resolved: list[str] = []
+        for tag in _TAG_RE.finditer(m.group(0)):
+            idx = int(tag.group(1)) - 1  # convert to 0-based
+            if 0 <= idx < len(passages):
+                p = passages[idx]
+                book = p.get("book_name") or ""
+                # Use the page number from the chunk metadata, not from the LLM tag
+                page = p.get("page_start")
+                if page is not None:
+                    resolved.append(f"[{book}, Page {page}]" if book else f"[Page {page}]")
+                else:
+                    resolved.append(f"[{book}]" if book else "")
+        return "; ".join(resolved)
+
+    return _CITATION_BRACKET_RE.sub(_replace, answer)
+
+
+def _validate_citations(answer: str, passages: list[dict]) -> list[int]:
+    """Return a list of out-of-range passage indices found in the answer."""
+    n = len(passages)
+    return [idx for idx in _iter_tag_indices(answer) if idx < 1 or idx > n]
+
+
+async def _consistency_check(
+    question: str, answer: str, passages_text: str
+) -> str:
+    """For multi-source answers: ask the LLM whether the cited passages agree.
+
+    Returns the answer unchanged, or with a contradiction note prepended.
+    Only called when ≥ 2 distinct passages are cited.
+    """
+    cited_indices = sorted(set(_iter_tag_indices(answer)))
+    if len(cited_indices) < 2:
+        return answer
+    try:
+        verdict = await _chat_with_retry(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a consistency checker. "
+                        "Given a question and several source passages, "
+                        "decide in ONE sentence whether the passages AGREE or CONTRADICT "
+                        "each other on the answer. "
+                        "Start your reply with either 'AGREE' or 'CONTRADICT'."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Question: {question}\n\nPassages:\n{passages_text}"
+                    ),
+                },
+            ],
+            temperature=0.1,
+            max_tokens=80,
+        )
+        verdict = verdict.strip()
+        if verdict.upper().startswith("CONTRADICT"):
+            note = (
+                "⚠️ Note: the source passages contain a disagreement on this point. "
+                "Each passage's claim is stated separately below.\n\n"
+            )
+            return note + answer
+    except Exception:
+        logger.exception("Consistency check failed, returning answer as-is")
+    return answer
 
 
 async def retrieve_node(state: AgentState) -> dict:
     question = state["question"]
     tenant_id = state["tenant_id"]
+    book_id = state.get("book_id")
     lang = await detect_language(question)
     arabic_query = await translate_for_retrieval(question, lang)
+    # Arabic/Urdu questions need an English leg too: the indexed chunk text is
+    # English, so a purely Arabic overlap against it is 0 and the rerank score
+    # collapses below the confidence threshold even when the vector search
+    # found the right passage.
+    english_query = await translate_to_english(question, lang)
 
-    embed_query_text = arabic_query
-    if lang != "ar" and arabic_query.strip() != question.strip():
-        embed_query_text = f"{question} {arabic_query}"
+    # Strip Arabic-transliteration marks (ā, ṣ, ʿ, …) so "Kinānah" matches the
+    # indexed "Kinanah" in both the embedding query and the rerank overlap.
+    normalised = normalise_transliteration(question)
+
+    embed_parts = [arabic_query]
+    for extra in (normalised, english_query):
+        if extra.strip() and extra.strip() not in embed_parts:
+            embed_parts.append(extra)
+    embed_query_text = " ".join(embed_parts)
+
+    # Keyword leg: Meilisearch is fed the content terms of the English query
+    # (stopwords removed) rather than the full Arabic+English embedding blob.
+    # Full-sentence queries with default matching filter out documents that
+    # don't match the trailing terms, returning 0 hits even for distinctive
+    # terms like "miracles"; a term query with 'frequency' matching surfaces
+    # partial matches, giving the hybrid leg real recall.
+    keyword_terms = _query_terms(english_query) or _query_terms(normalised)
+    keyword_query = " ".join(keyword_terms) or english_query or embed_query_text
 
     embed_failed = False
     try:
@@ -169,8 +406,8 @@ async def retrieve_node(state: AgentState) -> dict:
     ks = []
     if vector is not None:
         vs_result, ks_result = await asyncio.gather(
-            vector_search(vector, tenant_id, top_k=20),
-            keyword_search(arabic_query, tenant_id, top_k=20),
+            vector_search(vector, tenant_id, top_k=20, book_id=book_id),
+            keyword_search(keyword_query, tenant_id, top_k=20, book_id=book_id),
             return_exceptions=True,
         )
         if not isinstance(vs_result, Exception):
@@ -183,31 +420,91 @@ async def retrieve_node(state: AgentState) -> dict:
             logger.error("keyword_search failed: %s", ks_result)
     else:
         try:
-            ks = await keyword_search(arabic_query, tenant_id, top_k=20)
+            ks = await keyword_search(keyword_query, tenant_id, top_k=20, book_id=book_id)
         except Exception as exc:
             logger.error("keyword_search fallback failed: %s", exc)
     combined = vs + ks
 
-    reranked = await rerank(question, combined, top_k=10)
+    # Capture the raw Qdrant cosine BEFORE rerank: rerank() overwrites each
+    # result dict's "score" in place with the reranked value, so reading it
+    # after would lose the raw similarity signal the quality gate needs.
+    top_vector_score = max((r.get("score", 0.0) for r in vs), default=0.0)
+
+    # Prefer the secondary query in the other script when available so the
+    # overlap component can match either the Arabic or English chunk text.
+    secondary_query = english_query if lang == "ar" else arabic_query
+    reranked = await rerank(normalised, combined, top_k=8, arabic_query=secondary_query)
     best_score = reranked[0]["score"] if reranked else 0.0
-    return {"passages": reranked, "best_score": best_score, "embed_failed": embed_failed, "language": lang}
+    logger.info(
+        "retrieve: tenant=%s book_id=%s lang=%s vs_raw=%d ks_raw=%d combined=%d reranked=%d "
+        "best_score=%.4f top_vector_score=%.4f",
+        tenant_id, book_id, lang, len(vs), len(ks), len(combined), len(reranked),
+        best_score, top_vector_score,
+    )
+    return {
+        "passages": reranked,
+        "best_score": best_score,
+        "top_vector_score": top_vector_score,
+        "embed_failed": embed_failed,
+        "language": lang,
+    }
 
 
 def quality_check_node(state: AgentState) -> str:
-    if state["passages"] and state["best_score"] >= 0.001:
-        return "generate"
-    if state["retry_count"] < 1:
-        return "retry"
-    return "no_result"
+    """Route to generation only when retrieval is confident; otherwise retry
+    once, then refuse.
+
+    Two independent confidence signals, combined with OR:
+
+    * ``best_score >= RAG_MIN_CONFIDENCE_SCORE`` — the reranked hybrid score
+      (RRF + lexical overlap + entity boost). This is the historical gate; it
+      carries Arabic-content matches whose evidence is lexical (vector
+      similarity for Arabic chunks is weak in this corpus).
+    * ``top_vector_score >= RAG_VECTOR_MIN_CONFIDENCE`` — the raw Qdrant
+      cosine of the top vector hit. English-content matches score 0.65-0.78
+      even when a long question dilutes the lexical overlap below the rerank
+      threshold. This rescued genuine hits like the "which two Qur'anic
+      verses..." question that previously returned an empty source list.
+
+    Unrelated-but-lexically-overlapping noise (e.g. a riba question matching
+    an unrelated Arabic chunk) sits at ~0.27 rerank and ~0.55 vector — below
+    both signals — and is refused.
+    """
+    threshold = settings.RAG_MIN_CONFIDENCE_SCORE
+    vector_min = settings.RAG_VECTOR_MIN_CONFIDENCE
+    best_score = state.get("best_score", 0.0)
+    top_vector_score = state.get("top_vector_score", 0.0)
+    confident = best_score >= threshold or top_vector_score >= vector_min
+    if state["passages"] and confident:
+        decision = "generate"
+    elif state["retry_count"] < 1:
+        decision = "retry"
+    else:
+        decision = "no_result"
+    logger.info(
+        "quality_gate: best_score=%.4f threshold=%.2f top_vector_score=%.4f vector_min=%.2f passages=%d -> %s",
+        best_score, threshold, top_vector_score, vector_min, len(state["passages"]), decision,
+    )
+    return decision
 
 
 async def retry_node(state: AgentState) -> dict:
-    client = _get_llm_client()
+    """One reformulation attempt before giving up. The rephrase is produced in
+    the question's own language — the old unconditional Arabic rephrase
+    mangled English questions on their second pass."""
     try:
+        lang = state.get("language") or await detect_language(state["question"])
+        lang_name = LANGUAGE_NAMES.get(lang, "English")
         rephrased = await _chat_with_retry(
-            client,
-            model=settings.GROQ_LLM_MODEL,
-            messages=[{"role": "user", "content": f"Rephrase this question in Arabic: {state['question']}"}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"Rephrase this question in {lang_name} as a clear, "
+                        f"concise search query: {state['question']}"
+                    ),
+                }
+            ],
             temperature=0.7,
             max_tokens=256,
         )
@@ -218,29 +515,62 @@ async def retry_node(state: AgentState) -> dict:
 
 
 async def generate_node(state: AgentState) -> dict:
-    client = _get_llm_client()
     lang = state.get("language") or await detect_language(state["question"])
     lang_name = LANGUAGE_NAMES.get(lang, "English")
-    passages_text = _format_passages(state["passages"])
-    prompt = GROUNDING_PROMPT_SYSTEM.format(passages=passages_text, language=lang_name)
+    passages = state["passages"]
+    passages_text = _format_passages(passages)
+
+    prompt = GROUNDING_PROMPT_SYSTEM.format(
+        passages=passages_text,
+        language=lang_name,
+        n_passages=len(passages),
+    )
 
     try:
         answer = await _chat_with_retry(
-            client,
-            model=settings.GROQ_LLM_MODEL,
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": f"{state['question']}\n\nWrite your entire answer in {lang_name}."},
             ],
             temperature=0.3,
-            max_tokens=256,
+            max_tokens=1024,
         )
+
+        # Post-generation citation validation
+        bad_indices = _validate_citations(answer, passages)
+        if bad_indices:
+            logger.warning(
+                "Generated answer contained out-of-range citation tags %s "
+                "(passage count: %d). Re-generating with stricter prompt.",
+                bad_indices, len(passages),
+            )
+            stricter_prompt = prompt + (
+                f"\n\nIMPORTANT: Your previous answer used invalid citation tags "
+                f"{bad_indices}. You only have {len(passages)} passages ([P1]–"
+                f"[P{len(passages)}]). Only use tags in that range."
+            )
+            answer = await _chat_with_retry(
+                messages=[
+                    {"role": "system", "content": stricter_prompt},
+                    {"role": "user", "content": f"{state['question']}\n\nWrite your entire answer in {lang_name}."},
+                ],
+                temperature=0.2,
+                max_tokens=1024,
+            )
+
+        # Multi-source consistency check
+        answer = await _consistency_check(state["question"], answer, passages_text)
+
+        # Resolve [Pn] tags → canonical [Book, Page N] strings for the user
+        answer = _resolve_citations(answer, passages)
+
         actual = _answer_language(answer)
         if actual != lang:
-            answer = await _enforce_language(client, answer, lang_name)
+            answer = await _enforce_language(answer, lang_name)
+
     except Exception:
         logger.exception("LLM generate failed, returning fallback")
-        answer = "I encountered an error while generating the answer. Please try again."
+        answer = LLM_ERROR_FALLBACK
 
     sources = [
         {
@@ -253,8 +583,9 @@ async def generate_node(state: AgentState) -> dict:
             "bbox": p.get("bbox"),
             "score": p.get("score", 0),
             "book_id": p.get("book_id"),
+            "relevance_score": p.get("score", 0),
         }
-        for p in state["passages"]
+        for p in passages
     ]
     return {"answer": answer, "sources": sources}
 

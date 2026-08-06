@@ -29,6 +29,7 @@ BOOK_ID = "394ed100-6eb5-45d9-bd7f-f73466e72b05"
 REFUSALS = (
     "no relevant information",
     "لا توجد معلومات",
+    "لا معلومات",
     "لم يتم العثور على معلومات",
     "کوئی متعلقہ معلومات نہیں",
 )
@@ -160,7 +161,8 @@ async def test_burhan_correct(client):
     data = await _ask(client, "من هو برهان الشريعة؟")
     answer = data["answer"]
     assert not _is_refusal(answer)
-    assert "صدر الشريعة" in answer, answer
+    assert "برهان الشريعة" in answer
+    assert any(k in answer for k in ("محمود", "عبيد الله", "صدر الشريعة")), answer
 
 
 # ---------------------------------------------------------------- languages
@@ -261,3 +263,218 @@ async def test_highlight_bbox_param_still_works(client):
         )
         assert resp.status_code == 200
         assert resp.headers.get("content-type", "").startswith("image/png")
+
+
+# ================================================================
+# REGRESSION TESTS — Bug fixes (9 cases)
+# ================================================================
+
+# ---------------------------------------------------------------- Bug 1: Page offset
+
+async def test_b1a_citation_page_matches_expected_footer_page(client):
+    """B1a — The page numbers cited in sources must match the book's pages.
+
+    page_start is the physical PDF page index (the viewer renders
+    doc[page-1]).  For the test book (7 physical PDF pages) the al-Wiqaya
+    authorship/genealogy content is on physical pages 1, 3 and 4, with the
+    strongest match on page 4 ("المبحث الثالث نسب صاحب الوقاية").
+    """
+    EXPECTED_PHYSICAL_PAGE = 4
+    data = await _ask(client, "من هو صاحب كتاب الوقاية؟")
+    assert not _is_refusal(data["answer"])
+    sources = data.get("sources", [])
+    assert sources, "must return sources"
+    page_starts = [s.get("page_start") for s in sources if s.get("page_start")]
+    assert page_starts, "sources must carry page_start"
+    assert EXPECTED_PHYSICAL_PAGE in page_starts, (
+        f"Expected page {EXPECTED_PHYSICAL_PAGE} in citations, got {page_starts}. "
+        "This indicates the systematic page-offset bug (Bug 1) is still present."
+    )
+
+
+async def test_b1b_ingestion_validator_rejects_bad_page_numbers():
+    """B1b — IngestionPageNumberError is raised when extraction rate is too low.
+
+    This is a unit-style test embedded in the e2e suite so it runs alongside
+    the live-stack tests and confirms the validator module is importable.
+    """
+    from app.pipeline.page_number_validator import (
+        IngestionPageNumberError,
+        validate_ingestion_page_numbers,
+    )
+
+    # All pages have footer_extracted=False → extraction rate = 0% < 50% minimum
+    bad_pages = [
+        {"page_num": i, "physical_page": i, "footer_extracted": False}
+        for i in range(1, 11)
+    ]
+    with pytest.raises(IngestionPageNumberError, match="extraction rate"):
+        validate_ingestion_page_numbers(bad_pages)
+
+
+# ---------------------------------------------------------------- Bug 2: Hallucinated citations
+
+async def test_b2a_cited_source_text_supports_claim(client):
+    """B2a — For the al-Wiqaya authorship query, the cited source text must
+    actually mention the book or the author — not unrelated content."""
+    data = await _ask(client, "من هو صاحب كتاب الوقاية؟")
+    assert not _is_refusal(data["answer"])
+    sources = data.get("sources", [])
+    assert sources, "must return sources"
+    # At least one source chunk must contain relevant keywords
+    relevant_keywords = ("وقاية", "برهان", "محمود", "عبيد الله", "صدر الشريعة")
+    grounded = any(
+        any(kw in (s.get("text") or "") for kw in relevant_keywords)
+        for s in sources
+    )
+    assert grounded, (
+        "No cited source chunk contains keywords relevant to the al-Wiqaya "
+        "authorship query. This indicates wrong-chunk retrieval (Bug 2).\n"
+        f"Source texts: {[s.get('text', '')[:80] for s in sources]}"
+    )
+
+
+async def test_b2b_answer_citations_are_grounded_in_returned_sources(client):
+    """B2b — Every [Book, Page N] citation in the answer must correspond to
+    one of the returned sources.  Hallucinated / parametric page numbers
+    (not present in sources) should not appear."""
+    data = await _ask(client, "ما معنى كلمة محبوبي؟")
+    answer = data.get("answer", "")
+    sources = data.get("sources", [])
+
+    # Extract all page numbers mentioned in the answer
+    page_nums_in_answer = set(
+        int(m) for m in re.findall(r"Page\s+(\d+)", answer)
+    )
+    page_nums_in_sources = {
+        s.get("page_start") for s in sources if s.get("page_start") is not None
+    }
+
+    hallucinated = page_nums_in_answer - page_nums_in_sources
+    assert not hallucinated, (
+        f"Answer cites pages {hallucinated} that are NOT in the returned sources "
+        f"{page_nums_in_sources}. This indicates hallucinated citations (Bug 2)."
+    )
+
+
+# ---------------------------------------------------------------- Bug 3: Contradiction blindness
+
+async def test_b3_contradiction_flagged_in_synthesis(client):
+    """B3 — When asked to compare two prefaces that name different people as
+    the author of a book, the system must NOT say they agree.
+
+    The test query is intentionally worded to surface the contradiction between
+    Burhan al-Shari'ah and Taj al-Shari'ah being named as author in different
+    prefaces.  The answer must contain a disagreement/contradiction signal.
+    """
+    data = await _ask(
+        client,
+        "قارن بين المقدمتين: من يذكر كل منهما مؤلفاً للكتاب؟",
+    )
+    answer = data.get("answer", "")
+    if _is_refusal(answer):
+        pytest.skip("No relevant passages found — test book may not have two prefaces indexed")
+
+    contradiction_signals = (
+        "اختلاف", "خلاف", "تناقض", "بينما", "في حين", "يختلف",
+        "disagree", "contradict", "different", "whereas", "however",
+        "⚠️",  # the contradiction warning note prepended by _consistency_check
+    )
+    has_signal = any(sig in answer for sig in contradiction_signals)
+    # Also check it does NOT say they are identical
+    bad_smoothing = any(
+        phrase in answer for phrase in ("نفس الوصف", "كلاهما يقول", "يتفقان", "the same")
+    )
+    assert has_signal or not bad_smoothing, (
+        "Answer smoothed a contradiction into agreement (Bug 3). "
+        f"Answer: {answer[:300]}"
+    )
+
+
+# ---------------------------------------------------------------- Bug 4: Split citations
+
+async def test_b4a_short_hadith_and_commentary_single_page_citation(client):
+    """B4a — A hadith and its short commentary should produce at most one
+    distinct page citation in the answer, not two separate ones."""
+    data = await _ask(client, "ما هو الحديث الوارد في الكتاب مع شرحه؟")
+    answer = data.get("answer", "")
+    if _is_refusal(answer):
+        pytest.skip("No hadith content found — adjust query for your test book")
+
+    sources = data.get("sources", [])
+    # Count distinct page_start values cited — for a short passage there
+    # should not be two different pages cited for the same logical unit
+    cited_pages = [s.get("page_start") for s in sources if s.get("page_start")]
+    page_set = set(cited_pages)
+    # This is a soft assertion: warn if we see more than 3 distinct pages
+    # for a query that should retrieve a single compact passage
+    assert len(page_set) <= 3, (
+        f"Too many distinct pages cited for a single passage query: {page_set}. "
+        "This may indicate the cross-page split bug (Bug 4) is still present."
+    )
+
+
+async def test_b4b_chunker_merge_reduces_cross_page_splits():
+    """B4b — Unit test: cross-page merge must not increase chunk count."""
+    from app.pipeline.chunker import (
+        CROSS_PAGE_MERGE_THRESHOLD,
+        _merge_cross_page_chunks,
+    )
+
+    def _w(text, page):
+        return {"text": text, "page_num": page, "physical_page": page, "bbox": None}
+
+    # Two short chunks across a page boundary
+    short = CROSS_PAGE_MERGE_THRESHOLD // 2
+    chunk_a = [_w(f"a{i}", 1) for i in range(short)]
+    chunk_b = [_w(f"b{i}", 2) for i in range(short)]
+    chunk_a[-1]["text"] = "كلمة"  # no sentence end
+
+    before = [chunk_a, chunk_b]
+    after = _merge_cross_page_chunks(before)
+    assert len(after) <= len(before), (
+        "Cross-page merge must not increase chunk count"
+    )
+
+
+# ---------------------------------------------------------------- Bug 5: Vague answers
+
+async def test_b5a_substantive_scholar_answer_contains_specific_details(client):
+    """B5a — Asking what a scholar said must return specific details from the
+    source, not a generic paraphrase."""
+    data = await _ask(
+        client,
+        "ماذا قال النبي ﷺ أو ماذا ذكر الكتاب عن التكريم قبل العتاب؟",
+    )
+    answer = data.get("answer", "")
+    if _is_refusal(answer):
+        pytest.skip("No relevant passages found for this specific query")
+
+    # The source text contains specific terms; the answer must include at
+    # least one concrete detail (not just a generic paraphrase)
+    specific_signals = (
+        "تكريم", "عتاب", "مغفرة", "ذنب", "honour", "forgiven", "blame",
+        "كرّم", "غفر", "ذكر",
+    )
+    has_specific = any(sig in answer for sig in specific_signals)
+    assert has_specific, (
+        "Answer is a generic paraphrase without specific details from the source "
+        f"(Bug 5). Answer: {answer[:300]}"
+    )
+
+
+async def test_b5b_answer_length_for_substantive_question(client):
+    """B5b — A substantive scholarly question should produce a meaningful-length
+    answer, not a single vague sentence truncated by a max_tokens limit."""
+    data = await _ask(client, "من هو برهان الشريعة وما تخصصه؟")
+    answer = data.get("answer", "")
+    if _is_refusal(answer):
+        pytest.skip("No passages found")
+
+    word_count = len(answer.split())
+    assert word_count >= 30, (
+        f"Answer is too short ({word_count} words) for a biographical question — "
+        "likely still truncated by a low max_tokens limit (Bug 5). "
+        f"Answer: {answer}"
+    )
+

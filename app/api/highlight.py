@@ -18,29 +18,68 @@ router = APIRouter(tags=["highlight"])
 def _norm_word(word: str) -> str:
     import re
 
-    word = re.sub(r"[\u064B-\u0652\u0670\u0640]", "", word)
+    word = re.sub(r"[\u064B-\u0652\u0670\u0640\u060C\u061B\u061F\u0660-\u0669]", "", word)
     word = word.translate(str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و", "ئ": "ي"}))
-    return re.sub(r"[^\w\u0600-\u06FF]", "", word).lower()
+    return re.sub(r"[^\u0621-\u064A\u0671-\u06FFA-Za-z0-9]", "", word).lower()
 
 
-def _locate_bbox(words: list[dict], snippet: str) -> list[float] | None:
-    snippet_words = [w for w in snippet.split() if w.strip()]
+def _locate_bbox(words: list[dict], snippet: str, rtl: bool = True) -> list[float] | None:
+    from collections import defaultdict
+
+    snippet_words = [_norm_word(w) for w in snippet.split() if _norm_word(w)]
     if len(snippet_words) < 3:
         return None
-    norm = {_norm_word(w["text"]): w["bbox"] for w in words if _norm_word(w["text"])}
-    matched: list[list[float]] = []
-    for w in snippet_words:
-        box = norm.get(_norm_word(w))
-        if box:
-            matched.append(box)
-    if len(matched) < 3 or len(matched) / len(snippet_words) < 0.35:
+
+    lines: dict[str, list[tuple[str, list[float]]]] = defaultdict(list)
+    for w in words:
+        norm = _norm_word(w.get("text", ""))
+        if norm:
+            lines.setdefault(w.get("line", 0), []).append((norm, w["bbox"]))
+    for line_words in lines.values():
+        line_words.sort(key=lambda t: t[1][0])
+
+    def lcs(a: list[str], b: list[str]) -> list[tuple[int, int]]:
+        m, n = len(a), len(b)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        for i in range(m - 1, -1, -1):
+            for j in range(n - 1, -1, -1):
+                if a[i] == b[j]:
+                    dp[i][j] = dp[i + 1][j + 1] + 1
+                else:
+                    dp[i][j] = max(dp[i + 1][j], dp[i][j + 1])
+        matches: list[tuple[int, int]] = []
+        i = j = 0
+        while i < m and j < n:
+            if a[i] == b[j]:
+                matches.append((i, j))
+                i += 1
+                j += 1
+            elif dp[i + 1][j] >= dp[i][j + 1]:
+                i += 1
+            else:
+                j += 1
+        return matches
+
+    def span_box(boxes: list[list[float]]) -> list[float]:
+        return [
+            min(b[0] for b in boxes),
+            min(b[1] for b in boxes),
+            max(b[2] for b in boxes),
+            max(b[3] for b in boxes),
+        ]
+
+    stream: list[tuple[str, list[float]]] = []
+    for line_words in sorted(lines.values(), key=lambda lw: min(t[1][1] for t in lw)):
+        ordered = line_words[::-1] if rtl else line_words
+        stream.extend(ordered)
+
+    matches = lcs(snippet_words, [t[0] for t in stream])
+    page_len = len(stream)
+    min_required = max(3, int(0.5 * min(len(snippet_words), page_len) + 0.5))
+    if len(matches) < min_required:
         return None
-    return [
-        min(b[0] for b in matched),
-        min(b[1] for b in matched),
-        max(b[2] for b in matched),
-        max(b[3] for b in matched),
-    ]
+    boxes = [stream[j][1] for _, j in matches]
+    return span_box(boxes)
 
 
 @router.get("/highlight")
@@ -113,9 +152,24 @@ async def get_highlight(
         p = doc[page - 1]
         if parts is not None:
             rect = fitz.Rect(x0, y0, x1, y1)
-            p.draw_rect(rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0)
-        elif text is not None:
-            found = _locate_bbox(_words_from_tesseract(p), text)
+            page_rect = p.rect
+            area_frac = (
+                ((x1 - x0) * (y1 - y0)) / (page_rect.width * page_rect.height)
+                if page_rect.width > 0 and page_rect.height > 0
+                else 1.0
+            )
+            # The text-only Gemini OCR path stored synthetic bboxes that cover
+            # the whole page (or a large slab of it); a real tesseract word
+            # box never covers 35%+ of the page area. Treat such bboxes as
+            # untrustworthy and fall back to locating the snippet on the page.
+            if area_frac < 0.35:
+                p.draw_rect(
+                    rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0
+                )
+            else:
+                parts = None
+        if parts is None and text is not None:
+            found = _locate_bbox(_words_from_tesseract(p), text, rtl=book.language != "en")
             if found is not None:
                 p.draw_rect(
                     fitz.Rect(found[0] - 2, found[1] - 2, found[2] + 2, found[3] + 2),

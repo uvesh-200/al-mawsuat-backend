@@ -9,6 +9,7 @@ class SourceItem(BaseModel):
     book_type: str | None = None
     chapter: str | None = None
     page: int | None = None
+    page_start: int | None = None
     relevance_score: float
     text: str | None = None
     bbox: list[float] | None = None

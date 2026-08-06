@@ -15,6 +15,7 @@ from app.models.tables import Book, ProcessingJob
 from app.pipeline.chunker import chunk as chunk_text
 from app.pipeline.extractor import extract
 from app.pipeline.indexer import index_to_meilisearch, index_to_qdrant, update_book_status
+from app.pipeline.page_number_validator import IngestionPageNumberError, validate_ingestion_page_numbers
 from app.storage.minio_client import storage
 
 logger = logging.getLogger(__name__)
@@ -163,6 +164,22 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
 
             pages = extract_task.result()
             total_pages = len(pages)
+
+            # Validate footer-extracted page numbers before ingesting
+            try:
+                pn_report = validate_ingestion_page_numbers(pages)
+                logger.info(
+                    "Page-number validation passed: %d/%d pages had footer extraction, "
+                    "modal_offset=%s",
+                    pn_report.footer_extracted, pn_report.total_pages, pn_report.offset,
+                )
+            except IngestionPageNumberError as pn_err:
+                logger.warning(
+                    "Page-number validation warning for book %s: %s — "
+                    "continuing with physical page indices as fallback.",
+                    book_id, pn_err,
+                )
+
             async with AsyncSessionLocal() as session:
                 await session.execute(update(Book).where(Book.id == book_id).values(total_pages=total_pages))
                 await session.commit()

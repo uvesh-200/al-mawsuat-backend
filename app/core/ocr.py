@@ -9,7 +9,10 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-OCR_BATCH_SIZE = 10
+# One image per request: Gemini does not reliably return per-image
+# transcriptions for multi-image batches (it may return a single merged
+# text, which the line-based fallback splitter then chops up incorrectly).
+OCR_BATCH_SIZE = 1
 MAX_RETRIES = settings.OCR_MAX_RETRIES
 BASE_DELAY = 1.0
 MAX_DELAY = settings.OCR_RETRY_MAX_DELAY
@@ -17,9 +20,11 @@ CONCURRENT_BATCHES = settings.OCR_CONCURRENT_BATCHES
 
 _ocr_semaphore = asyncio.Semaphore(CONCURRENT_BATCHES)
 
-_PROMPT = """Extract the exact raw text from this single Arabic book page image.
-Return ONLY the original text characters exactly as they appear.
-Preserve line breaks. Do not summarize, explain, translate, or add any commentary."""
+_PROMPT = """Extract the exact raw text from this book page image. The page may be
+in Arabic, Urdu, or English.
+Return ONLY the original text characters exactly as they appear, in the original
+language and script. Preserve line breaks. Do not summarize, explain, translate,
+or add any commentary."""
 
 
 def _encode_image(png_bytes: bytes) -> dict:
@@ -34,6 +39,7 @@ async def _ocr_batch(client: httpx.AsyncClient, page_images: list[bytes]) -> lis
     parts = [_encode_image(img) for img in page_images]
     contents = [{"parts": parts}]
     payload = {
+        "systemInstruction": {"parts": [{"text": _PROMPT}]},
         "contents": contents,
         "generationConfig": {
             "maxOutputTokens": 4096,
@@ -59,7 +65,18 @@ async def _ocr_batch(client: httpx.AsyncClient, page_images: list[bytes]) -> lis
                 continue
             resp.raise_for_status()
             data = resp.json()
-            return _parse_batch_response(data, len(page_images))
+            texts = _parse_batch_response(data, len(page_images))
+            if any(not (t or "").strip() for t in texts):
+                wait = min(BASE_DELAY * (2 ** min(attempt, 4)) + random.uniform(0, 1), MAX_DELAY)
+                logger.warning(
+                    "OCR attempt %d/%d returned empty text for %d/%d page(s), retrying in %.1fs",
+                    attempt + 1, MAX_RETRIES,
+                    sum(1 for t in texts if not (t or "").strip()), len(page_images), wait,
+                )
+                await asyncio.sleep(wait)
+                last_exc = ValueError("Empty OCR response")
+                continue
+            return texts
         except httpx.TimeoutException as e:
             last_exc = e
             wait = min(BASE_DELAY * (2 ** min(attempt, 4)) + random.uniform(0, 1), MAX_DELAY)

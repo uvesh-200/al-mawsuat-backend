@@ -82,6 +82,8 @@ async def index_to_qdrant(chunks: list[dict], vectors: list[list[float]]) -> Non
                     "chapter": chunk.get("chapter"),
                     "page_start": chunk.get("page_start"),
                     "page_end": chunk.get("page_end"),
+                    "physical_page_start": chunk.get("physical_page_start"),
+                    "physical_page_end": chunk.get("physical_page_end"),
                     "text": chunk.get("text"),
                     "bbox": chunk.get("bbox"),
                     "minio_path": chunk.get("minio_path"),
@@ -117,6 +119,8 @@ async def index_to_meilisearch(chunks: list[dict]) -> None:
                 "chapter": chunk.get("chapter"),
                 "page_start": chunk.get("page_start"),
                 "page_end": chunk.get("page_end"),
+                "physical_page_start": chunk.get("physical_page_start"),
+                "physical_page_end": chunk.get("physical_page_end"),
                 "bbox": chunk.get("bbox"),
                 "minio_path": chunk.get("minio_path"),
             }
