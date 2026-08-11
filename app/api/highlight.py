@@ -153,16 +153,22 @@ async def get_highlight(
         if parts is not None:
             rect = fitz.Rect(x0, y0, x1, y1)
             page_rect = p.rect
-            area_frac = (
-                ((x1 - x0) * (y1 - y0)) / (page_rect.width * page_rect.height)
-                if page_rect.width > 0 and page_rect.height > 0
-                else 1.0
+            # A legitimate per-page bbox always lies within the page rect,
+            # even when the chunk covers most of a densely typeset page
+            # (dense Arabic pages routinely exceed 35% of the page area).
+            # The synthetic boxes from the text-only Gemini OCR path violated
+            # the page bounds (e.g. x1 > 3000pt), so containment is the
+            # correct plausibility invariant; anything outside the page rect
+            # is untrustworthy and falls back to locating the snippet.
+            inside_page = (
+                rect.x0 >= 0
+                and rect.y0 >= 0
+                and rect.x1 <= page_rect.width + 0.01
+                and rect.y1 <= page_rect.height + 0.01
+                and rect.x1 > rect.x0
+                and rect.y1 > rect.y0
             )
-            # The text-only Gemini OCR path stored synthetic bboxes that cover
-            # the whole page (or a large slab of it); a real tesseract word
-            # box never covers 35%+ of the page area. Treat such bboxes as
-            # untrustworthy and fall back to locating the snippet on the page.
-            if area_frac < 0.35:
+            if inside_page:
                 p.draw_rect(
                     rect, color=(1, 0.85, 0), fill=(1, 0.85, 0), fill_opacity=0.45, width=0
                 )

@@ -90,6 +90,15 @@ async def _mark_failed(book_id: str, exc: Exception) -> None:
                     )
                 )
                 await session.execute(stmt)
+                # The book stays "pending" on failure otherwise (only
+                # update_book_status flips it to "ready"), so the UI keeps
+                # showing "Processing…" forever. Mirror the failure to the
+                # book row so the UI can display the real state.
+                await session.execute(
+                    update(Book)
+                    .where(Book.id == book_id)
+                    .values(status="failed")
+                )
                 await session.commit()
             break
         except Exception as inner:

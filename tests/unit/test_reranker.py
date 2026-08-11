@@ -97,13 +97,15 @@ class TestTermOverlap:
 
 
 class TestRerankThreshold:
-    def test_pizza_rerank_below_threshold(self):
+    def test_pizza_rerank_dropped_by_floor(self):
+        """An unrelated question must be dropped by the relevance floor, so
+        the quality gate refuses instead of letting the LLM invent an answer."""
         res = [
             {"text": BRICK_CHUNK, "score": 0.8},
             {"text": ASH_SHIFA_CHUNK, "score": 0.6},
         ]
         rr = __import__("asyncio").run(rerank(PIZZA_QUESTION, res, top_k=2))
-        assert rr[0]["score"] < 0.30
+        assert rr == []
 
     def test_ash_shifa_rerank_above_threshold(self):
         res = [

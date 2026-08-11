@@ -74,6 +74,8 @@ async def vector_search(
             "page_end": r.payload.get("page_end"),
             "chapter": r.payload.get("chapter"),
             "bbox": r.payload.get("bbox"),
+            "page_bboxes": r.payload.get("page_bboxes"),
+            "page_offsets": r.payload.get("page_offsets"),
             "minio_path": r.payload.get("minio_path"),
             "score": r.score,
             "book_id": r.payload.get("book_id"),
@@ -88,17 +90,31 @@ async def keyword_search(
     tenant_id: str,
     top_k: int = 30,
     book_id: str | None = None,
+    alt_query: str | None = None,
 ) -> list[dict]:
+    """Meilisearch keyword leg.
+
+    Runs the query as one or more independent searches and merges the hits
+    (deduped by chunk id). Separate legs are required for cross-script queries:
+    Meilisearch's `frequency` matching ANDs together every query word that has
+    a match anywhere in the index, so a single mixed Arabic+English query is
+    zeroed whenever one of its words only appears in another book's chunks
+    (e.g. `sharia`). A leg per script keeps each search self-consistent.
+    """
+    queries = [query]
+    if alt_query and alt_query != query:
+        queries.append(alt_query)
+
     try:
         loop = asyncio.get_running_loop()
         filters = [f"tenant_id = {tenant_id}"]
         if book_id:
             filters.append(f"book_id = {book_id}")
 
-        def _search() -> dict:
+        def _search(q: str) -> dict:
             client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY, timeout=10)
             return client.index(MEILISEARCH_INDEX).search(
-                query,
+                q,
                 opt_params={
                     "filter": filters,
                     "limit": top_k,
@@ -111,11 +127,23 @@ async def keyword_search(
                     "matchingStrategy": "frequency",
                 },
             )
-        results = await loop.run_in_executor(None, _search)
-        hits = results.get("hits", [])
+        results = await asyncio.gather(*(loop.run_in_executor(None, _search, q) for q in queries))
+
+        hits: list[dict] = []
+        seen: set[str] = set()
+        for result in results:
+            for h in result.get("hits", []):
+                key = str(h.get("id") or (h.get("book_id"), h.get("page_start"), h.get("page_end"), h.get("text")))
+                if key in seen:
+                    continue
+                seen.add(key)
+                hits.append(h)
+            if len(hits) >= top_k:
+                break
+        hits = hits[:top_k]
         logger.info(
-            "Meilisearch keyword_search: filter=%s query=%r raw_count=%s",
-            filters, query[:200], len(hits),
+            "Meilisearch keyword_search: filter=%s queries=%r raw_count=%s",
+            filters, [q[:200] for q in queries], len(hits),
         )
     except Exception:
         logger.exception("Meilisearch keyword search failed")
@@ -130,6 +158,8 @@ async def keyword_search(
             "page_end": h.get("page_end"),
             "chapter": h.get("chapter"),
             "bbox": h.get("bbox"),
+            "page_bboxes": h.get("page_bboxes"),
+            "page_offsets": h.get("page_offsets"),
             "minio_path": h.get("minio_path"),
             "score": 0.5,
             "book_id": h.get("book_id"),

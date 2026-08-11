@@ -83,22 +83,37 @@ def _parse_retry_after(value: str | None) -> float | None:
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
     batches = [texts[i : i + EMBED_BATCH_SIZE] for i in range(0, len(texts), EMBED_BATCH_SIZE)]
+    logger.info(
+        "[TRACE] embed texts=%d batches=%d batch_size=%d model=%s",
+        len(texts), len(batches), EMBED_BATCH_SIZE, settings.GEMINI_EMBEDDING_MODEL,
+    )
     async with httpx.AsyncClient(timeout=300.0) as client:
         tasks = [embed_batch(client, batch) for batch in batches]
         results = await asyncio.gather(*tasks)
     vectors = []
     for r in results:
         vectors.extend(r)
+    logger.info(
+        "[TRACE] embed done vectors=%d dim=%d",
+        len(vectors), len(vectors[0]) if vectors else 0,
+    )
     return vectors
 
 
 async def embed_query(text: str, tenant_id: str) -> list[float]:
     cache_key = f"embed:{tenant_id}:{hashlib.sha256(text.encode()).hexdigest()}"
-    r = await get_redis()
-    cached = await r.get(cache_key)
-    if cached is not None:
-        return json.loads(cached)
+    try:
+        r = await asyncio.wait_for(get_redis(), timeout=5.0)
+        cached = await asyncio.wait_for(r.get(cache_key), timeout=5.0)
+        if cached is not None:
+            return json.loads(cached)
+    except Exception:
+        logger.warning("Embedding cache read failed, computing fresh embedding")
     vectors = await embed_texts([text])
     vector = vectors[0]
-    await r.setex(cache_key, 604800, json.dumps(vector))
+    try:
+        r = await asyncio.wait_for(get_redis(), timeout=5.0)
+        await asyncio.wait_for(r.setex(cache_key, 604800, json.dumps(vector)), timeout=5.0)
+    except Exception:
+        logger.warning("Embedding cache write failed, skipping cache")
     return vector

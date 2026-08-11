@@ -1,5 +1,8 @@
+import logging
 import re
 import unicodedata
+
+logger = logging.getLogger(__name__)
 
 ARABIC_STOPWORDS = {
     "من", "ما", "هو", "هي", "هم", "هن", "في", "على", "عن", "إلى", "الي",
@@ -64,6 +67,14 @@ _NISBA_RE = re.compile(r"[\u0600-\u06FF]{4,}(?:ي|وي)\b", re.UNICODE)
 _IS_ARABIC_CHAR = re.compile(r"[\u0600-\u06FF]", re.UNICODE)
 
 ENTITY_BOOST = 0.15
+
+# Per-passage relevance floor applied before the top_k slice in ``rerank``:
+# a passage that shares zero lexical overlap with the query, or whose final
+# hybrid score (RRF + 0.5*overlap + entity) is below this, is padded retrieval
+# noise. RRF alone runs ~0.015 and a single-term overlap is ~0.071-0.086, so
+# such passages carry no evidence but still ship to the LLM context and the
+# UI as ~1-9% sources.
+RERANK_MIN_SCORE = 0.10
 
 
 def _normalise_token(token: str) -> str:
@@ -181,10 +192,34 @@ async def rerank(
             overlap = max(overlap, _term_overlap(secondary_query, r.get("text", "")))
         entity = _entity_boost(question, r)
         r["score"] = round(rrf + 0.5 * overlap + entity, 4)
+        r["overlap"] = overlap
+        logger.info(
+            "[TRACE] rerank_component rrf=%.4f overlap=%.4f entity=%.4f final=%.4f book=%s page=%s preview=%r",
+            rrf, overlap, entity, r["score"],
+            r.get("book_name"), r.get("page_start"), r.get("text", "")[:120],
+        )
 
-    deduped.sort(key=lambda r: r.get("score", 0), reverse=True)
+    # Per-passage relevance floor before the top_k slice: drop passages with
+    # no lexical overlap, or with a final score below RERANK_MIN_SCORE, so a
+    # book with fewer than top_k genuinely relevant passages is never padded
+    # with zero-relevance junk. The whole-answer quality gate downstream still
+    # sees every survivor (best_score = top survivor), so neither false
+    # generation on junk nor a false no_result (when 1+ passages remain) can
+    # occur.
+    kept: list[dict] = []
+    for r in deduped:
+        if r.get("overlap", 0.0) <= 0.0 or r["score"] < RERANK_MIN_SCORE:
+            logger.info(
+                "[TRACE] rerank_floor dropped overlap=%.4f final=%.4f book=%s page=%s preview=%r",
+                r.get("overlap", 0.0), r["score"],
+                r.get("book_name"), r.get("page_start"), r.get("text", "")[:120],
+            )
+            continue
+        kept.append(r)
 
-    return _suppress_overlap_chunks(deduped)[:top_k]
+    kept.sort(key=lambda r: r.get("score", 0), reverse=True)
+
+    return _suppress_overlap_chunks(kept)[:top_k]
 
 
 def _token_list(text: str) -> list[str]:

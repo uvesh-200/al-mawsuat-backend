@@ -92,18 +92,92 @@ def _extract_footer_page_number(ocr_text: str) -> int | None:
     return candidates[-1]
 
 
+def _log_page_summary(pages: list[dict]) -> None:
+    """Trace log one line per page: OCR output size, page-number findings."""
+    for p in pages:
+        text = " ".join(w["text"] for w in p.get("words", []))
+        logger.info(
+            "[TRACE] page physical=%d printed=%s footer_extracted=%s words=%d preview=%r",
+            p.get("physical_page"), p.get("printed_page_num"),
+            p.get("footer_extracted"), len(p.get("words", [])),
+            text[:160],
+        )
+
+
+def _modal_print_offset(pages: list[dict]) -> int | None:
+    """The most common printed-physical offset across footer-extracted pages.
+
+    Used for option (b): pages whose footer could not be extracted are
+    assigned ``printed = physical + offset`` when the offset is reliable.
+    """
+    from collections import Counter
+    offsets = [
+        p["printed_page_num"] - p["physical_page"]
+        for p in pages
+        if p.get("footer_extracted") and p.get("printed_page_num") is not None
+        and p.get("physical_page") is not None
+    ]
+    if not offsets:
+        return None
+    counter = Counter(offsets)
+    top_val, top_cnt = counter.most_common(1)[0]
+    # Reliable only when one offset dominates the extraction results.
+    if top_cnt < max(1, int(len(offsets) * 0.8)):
+        return None
+    return top_val
+
+
+def _impute_printed_pages(pages: list[dict]) -> None:
+    """Option (b): fill in missing printed page numbers via the modal offset.
+
+    Pages where footer extraction failed get ``printed_page_num =
+    physical_page + modal_offset``. When fewer than half the pages extracted
+    a footer — or the offsets disagree — the printed numbers are unreliable
+    for the whole book, so every page keeps ``printed_page_num = None`` and
+    the rest of the pipeline falls back to physical page numbers.
+    """
+    extracted = sum(1 for p in pages if p.get("footer_extracted"))
+    if extracted == 0 or extracted < max(1, len(pages) * 0.5):
+        logger.info(
+            "Footer page numbers unreliable (%d/%d extracted); using physical "
+            "page numbers for the whole book", extracted, len(pages),
+        )
+        return
+    offset = _modal_print_offset(pages)
+    if offset is None:
+        logger.info(
+            "Footer offsets inconsistent; using physical page numbers for the whole book"
+        )
+        return
+    imputed = 0
+    for p in pages:
+        if p.get("footer_extracted") and p.get("printed_page_num") is not None:
+            continue
+        printed = p["physical_page"] + offset
+        for w in p.get("words", []):
+            w["printed_page_num"] = printed
+        p["printed_page_num"] = printed
+        p["printed_imputed"] = True
+        imputed += 1
+    if imputed:
+        logger.info(
+            "Imputed printed page numbers for %d pages via modal offset %+d",
+            imputed, offset,
+        )
+
+
 def _sanity_check_page_numbers(pages: list[dict]) -> None:
-    """Log warnings when printed page numbers diverge suspiciously from
+    """Log check when printed page numbers diverge suspiciously from
     the physical PDF index. This is a QA aid — it does not raise errors."""
     mismatches = 0
     skips = 0
     for p in pages:
-        footer = p.get("page_num")
+        footer = p.get("printed_page_num")
         physical = p.get("physical_page")
         if footer is None:
             skips += 1
             continue
-        # A constant offset (physical - footer) should be identical for all pages
+        # A constant offset (physical - printed) should be identical for all pages
         # once we've established it. Flag if the offset swings wildly.
         p["_offset"] = physical - footer
 
@@ -199,7 +273,7 @@ def _words_from_tesseract(page: fitz.Page) -> list[dict]:
             pass
 
 
-def _text_to_words(text: str, page_num: int) -> list[dict]:
+def _text_to_words(text: str, page_num: int, printed_page_num: int | None = None) -> list[dict]:
     """Convert Gemini OCR text into word dicts with synthetic line bboxes.
 
     The Gemini path has no real layout data, so each OCR line is assigned a
@@ -231,6 +305,7 @@ def _text_to_words(text: str, page_num: int) -> list[dict]:
             entry = {
                 "text": token,
                 "page_num": page_num,
+                "printed_page_num": printed_page_num,
                 "bbox": [x, y, x + tw, y + _LINE_HEIGHT],
             }
             if para_start:
@@ -241,7 +316,7 @@ def _text_to_words(text: str, page_num: int) -> list[dict]:
         words.extend(line_words)
         y += _LINE_HEIGHT
     if not words:
-        return [{"text": "", "page_num": page_num, "bbox": None}]
+        return [{"text": "", "page_num": page_num, "printed_page_num": printed_page_num, "bbox": None}]
     return words
 
 
@@ -259,13 +334,17 @@ def _process_page_tesseract(pdf_bytes: bytes, physical_page: int) -> dict:
       footer_extracted — True if page_num came from footer OCR
     """
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    page = doc[physical_page - 1]
-    words = _words_from_fitz(page)
-    raw_text = page.get_text("text")
-    doc.close()
+    try:
+        page = doc[physical_page - 1]
+        words = _words_from_fitz(page)
+        raw_text = page.get_text("text")
 
-    if len(words) < WORD_THRESHOLD:
-        words = _words_from_tesseract(page)
+        if len(words) < WORD_THRESHOLD:
+            # Must run while the document is still open: page objects become
+            # invalid after doc.close().
+            words = _words_from_tesseract(page)
+    finally:
+        doc.close()
 
     footer_num = _extract_footer_page_number(raw_text)
     if footer_num is None:
@@ -275,8 +354,11 @@ def _process_page_tesseract(pdf_bytes: bytes, physical_page: int) -> dict:
 
     # Chunk page numbers must match the physical page index used by the
     # viewer/highlight endpoint (doc[page - 1]). Printed footer numbers are
-    # unreliable (missing/OCR-noise), so page_num = physical_page.
+    # unreliable (missing/OCR-noise), so page_num = physical_page; the
+    # printed number is carried separately for citation display.
     page_num = physical_page
+    for w in words:
+        w["printed_page_num"] = footer_num
     return {
         "physical_page": physical_page,
         "page_num": page_num,
@@ -304,6 +386,8 @@ async def _extract_tesseract(pdf_bytes: bytes, progress_callback=None) -> list[d
             if progress_callback:
                 progress_callback(idx + 1, total)
 
+    _impute_printed_pages(results)
+    _log_page_summary(results)
     _sanity_check_page_numbers(results)
     return results
 
@@ -376,7 +460,7 @@ async def _extract_gemini(pdf_bytes: bytes, progress_callback=None) -> list[dict
         # Canonical page number = physical page index (see _process_page_tesseract).
         page_num = physical_page
 
-        words = _text_to_words(ocr_text, page_num)
+        words = _text_to_words(ocr_text, page_num, footer_num)
         results.append({
             "physical_page": physical_page,
             "page_num": page_num,
@@ -385,6 +469,10 @@ async def _extract_gemini(pdf_bytes: bytes, progress_callback=None) -> list[dict
             "words": words,
         })
 
+    # Option (b): impute missing printed page numbers from the modal offset
+    # BEFORE _log_page_summary so the trace shows resolved values.
+    _impute_printed_pages(results)
+    _log_page_summary(results)
     _sanity_check_page_numbers(results)
     return results
 

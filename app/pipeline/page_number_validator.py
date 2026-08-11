@@ -29,16 +29,19 @@ class PageNumberReport:
     extraction_rate: float
     violation_rate: float
     offset: int | None  # Most common physical - printed offset, or None
+    imputed_pages: int = 0  # pages whose printed number came from the modal offset
 
 
 def _compute_offset(pages: list[dict]) -> int | None:
-    """Return the modal (physical_page - page_num) offset across pages where
-    footer extraction succeeded.  None if no data."""
+    """Return the modal (printed_page_num - physical_page) offset across pages
+    where footer extraction succeeded.  None if no data."""
     from collections import Counter
     offsets = [
-        p["physical_page"] - p["page_num"]
+        p["printed_page_num"] - p["physical_page"]
         for p in pages
-        if p.get("footer_extracted") and p.get("physical_page") is not None
+        if p.get("footer_extracted")
+        and p.get("printed_page_num") is not None
+        and p.get("physical_page") is not None
     ]
     if not offsets:
         return None
@@ -52,12 +55,12 @@ def _check_monotone(pages: list[dict]) -> int:
     violations = 0
     prev: int | None = None
     for p in pages:
-        if not p.get("footer_extracted"):
+        printed = p.get("printed_page_num")
+        if printed is None:
             continue
-        cur = p["page_num"]
-        if prev is not None and cur < prev:
+        if prev is not None and printed < prev:
             violations += 1
-        prev = cur
+        prev = printed
     return violations
 
 
@@ -109,17 +112,19 @@ def validate_ingestion_page_numbers(
         extraction_rate=extraction_rate,
         violation_rate=violation_rate,
         offset=offset,
+        imputed_pages=sum(1 for p in pages if p.get("printed_imputed")),
     )
 
     logger.info(
         "Page-number validation: total=%d, footer_extracted=%d (%.0f%%), "
-        "monotone_violations=%d (%.0f%%), modal_offset=%s",
+        "monotone_violations=%d (%.0f%%), modal_offset=%s, imputed=%d",
         total,
         extracted,
         extraction_rate * 100,
         violations,
         violation_rate * 100,
         offset,
+        report.imputed_pages,
     )
 
     if extraction_rate < min_extraction_rate:

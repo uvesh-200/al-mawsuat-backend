@@ -1,5 +1,8 @@
+import logging
 import re
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 SENTENCE_END = re.compile(r"[.۔!?؟]$")
 HADITH_PATTERN = re.compile(r"(?:حديث\s*رقم|باب\s+\d+|رقم\s*\d+)")
@@ -40,9 +43,29 @@ def chunk(pages: list[dict], tenant_id: str) -> list[dict]:
     lines = _group_lines(words)
     chapters = _detect_chapters(lines)
     strategy = _detect_strategy(lines)
+    logger.info(
+        "[TRACE] chunk input pages=%d words=%d lines=%d chapters=%d strategy=%s",
+        len(pages), len(words), len(lines), len(chapters), strategy,
+    )
+    if chapters:
+        logger.info(
+            "[TRACE] chapters detected=%s",
+            {idx: name for idx, name in sorted(chapters.items())},
+        )
     raw = _split_chunks(words, lines, strategy)
     raw = _merge_cross_page_chunks(raw)
-    return [_build_chunk(c, tenant_id, lines, chapters) for c in raw]
+    chunks = [_build_chunk(c, tenant_id, lines, chapters) for c in raw]
+    logger.info(
+        "[TRACE] chunk done strategy=%s chunks=%d",
+        strategy, len(chunks),
+    )
+    for i, c in enumerate(chunks):
+        logger.info(
+            "[TRACE] chunk idx=%d pages=%s..%s tokens=%d chapter=%s preview=%r",
+            i, c["page_start"], c["page_end"], c["token_count"],
+            c.get("chapter"), c["text"][:200],
+        )
+    return chunks
 
 
 def _flatten(pages: list[dict]) -> list[dict]:
@@ -51,6 +74,7 @@ def _flatten(pages: list[dict]) -> list[dict]:
         for w in page["words"]:
             w["page_num"] = page["page_num"]
             w["physical_page"] = page.get("physical_page", page["page_num"])
+            w["printed_page_num"] = w.get("printed_page_num", page.get("printed_page_num"))
             w["_global_idx"] = len(result)
             result.append(w)
     return result
@@ -431,16 +455,97 @@ def _compute_text(words: list[dict]) -> str:
     return " ".join(w["text"] for w in words)
 
 
-def _compute_bbox(words: list[dict]) -> list[float] | None:
-    bboxes = [w["bbox"] for w in words if w.get("bbox") is not None]
-    if not bboxes:
+def _compute_page_bboxes(words: list[dict]) -> list[dict]:
+    """Per-page minimal enclosing rectangles for a chunk.
+
+    Word bboxes live in each page's own coordinate space (0..page_width,
+    0..page_height). A single min/max union across pages produces a rectangle
+    that exists on NO page (e.g. x1 or y1 in the tens of thousands), so the
+    chunk stores one box per page it spans instead.
+    """
+    per_page: dict[int, list[list[float]]] = {}
+    for w in words:
+        bbox = w.get("bbox")
+        if bbox is None:
+            continue
+        per_page.setdefault(w["page_num"], []).append(bbox)
+
+    result: list[dict] = []
+    for page in sorted(per_page):
+        boxes = per_page[page]
+        result.append(
+            {
+                "page": page,
+                "bbox": [
+                    min(b[0] for b in boxes),
+                    min(b[1] for b in boxes),
+                    max(b[2] for b in boxes),
+                    max(b[3] for b in boxes),
+                ],
+            }
+        )
+    return result
+
+
+def _compute_bbox(words: list[dict], page_bboxes: list[dict]) -> list[float] | None:
+    """The chunk's bbox expressed in page_start's coordinate space.
+
+    For single-page chunks this is the whole chunk's rectangle (unchanged
+    behaviour). For multi-page chunks it is the first page's own rectangle —
+    the page the highlight endpoint renders by default — while the per-page
+    boxes live in ``page_bboxes``.
+    """
+    if not page_bboxes:
         return None
-    return [
-        min(b[0] for b in bboxes),
-        min(b[1] for b in bboxes),
-        max(b[2] for b in bboxes),
-        max(b[3] for b in bboxes),
-    ]
+    return page_bboxes[0]["bbox"]
+
+
+def _compute_page_offsets(words: list[dict]) -> list[dict]:
+    """Character ranges of the joined chunk text per page.
+
+    Each entry maps a page to the [start_char, end_char) slice of the chunk's
+    ``text`` that came from that page, plus the printed footer page number of
+    that page (None when unknown). This survives into the stored payload so
+    citation resolution can point at the actual page a cited sentence falls on
+    instead of always using page_start, and can display printed numbers.
+    """
+    offsets: list[dict] = []
+    cur_page: Optional[int] = None
+    start = 0
+    pos = 0
+    for i, w in enumerate(words):
+        page = w["page_num"]
+        if page != cur_page:
+            if cur_page is not None:
+                # end_char is inclusive: the char before the next word's start
+                offsets.append({"page": cur_page, "start_char": start, "end_char": pos - 1})
+            cur_page = page
+            start = pos
+        pos += len(w["text"]) + 1
+    if cur_page is not None:
+        # final segment ends at the last real char of the joined text
+        offsets.append({"page": cur_page, "start_char": start, "end_char": pos - 2})
+    return offsets
+
+
+def _annotate_offsets_with_printed(offsets: list[dict], words: list[dict]) -> list[dict]:
+    """Stamp each offset entry with the printed page number of its page.
+
+    Word dicts carry per-page ``printed_page_num``; the first word of each
+    page's slice determines the value for the whole segment.
+    """
+    word_iter = iter(words)
+    for po in offsets:
+        printed: Optional[int] = None
+        for w in word_iter:
+            if w["page_num"] == po["page"]:
+                if w.get("printed_page_num") is not None:
+                    printed = w["printed_page_num"]
+                break
+            if w["page_num"] > po["page"]:
+                break
+        po["printed_page_num"] = printed
+    return offsets
 
 
 def _find_chapter(
@@ -466,13 +571,21 @@ def _build_chunk(
     chapters: dict[int, str],
 ) -> dict:
     text = _compute_text(words)
+    page_bboxes = _compute_page_bboxes(words)
+    offsets = _annotate_offsets_with_printed(_compute_page_offsets(words), words)
+    printed_start = words[0].get("printed_page_num")
+    printed_end = words[-1].get("printed_page_num")
     return {
         "text": text,
         "page_start": words[0]["page_num"],
         "page_end": words[-1]["page_num"],
         "physical_page_start": words[0].get("physical_page", words[0]["page_num"]),
         "physical_page_end": words[-1].get("physical_page", words[-1]["page_num"]),
-        "bbox": _compute_bbox(words),
+        "printed_page_start": printed_start,
+        "printed_page_end": printed_end,
+        "bbox": _compute_bbox(words, page_bboxes),
+        "page_bboxes": page_bboxes,
+        "page_offsets": offsets,
         "chapter": _find_chapter(words[0], all_lines, chapters),
         "tenant_id": tenant_id,
         "token_count": len(text.split()),

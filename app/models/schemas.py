@@ -10,9 +10,13 @@ class SourceItem(BaseModel):
     chapter: str | None = None
     page: int | None = None
     page_start: int | None = None
+    page_end: int | None = None
+    page_offsets: list[dict] | None = None
     relevance_score: float
     text: str | None = None
     bbox: list[float] | None = None
+    page_bboxes: list[dict] | None = None
+    minio_path: str | None = None
     highlight_url: str | None = None
 
 

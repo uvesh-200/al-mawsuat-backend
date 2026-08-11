@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     MEILISEARCH_URL: str = "http://meilisearch:7700"
     MEILISEARCH_KEY: str
+    # How long to wait for a Meilisearch task (create index, settings updates,
+    # add_documents) before giving up. The client default is 5000ms, which
+    # trips spuriously when the index is busy processing a queue of tasks.
+    MEILISEARCH_TASK_TIMEOUT_MS: int = 120_000
+    # Poll interval while waiting for a Meilisearch task.
+    MEILISEARCH_TASK_INTERVAL_MS: int = 500
     REDIS_URL: str = "redis://redis:6379/0"
 
     MINIO_ENDPOINT: str = "minio:9000"
@@ -45,6 +51,12 @@ class Settings(BaseSettings):
 
     GEMINI_LLM_MODEL: str = "gemini-3.1-flash-lite"
 
+    # Ordered list of LLM providers to activate at chain-build time (comma-
+    # separated). Providers not listed are skipped even when their API key is
+    # set — e.g. a dead DeepSeek key must not cost a retry cycle on every
+    # generation call. Default: Groq then Gemini.
+    LLM_PROVIDERS: str = "groq,gemini"
+
     # Minimum reranked match score of the top retrieved chunk before the
     # system generates an answer. Below this, the system refuses with a
     # no-result message instead of producing a vague answer from weak
@@ -67,6 +79,12 @@ class Settings(BaseSettings):
     # The gate generates when EITHER best_score >= RAG_MIN_CONFIDENCE_SCORE
     # OR top_vector_score >= this value.
     RAG_VECTOR_MIN_CONFIDENCE: float = 0.65
+
+    # Relaxed vector bar for source/footnote/transmission questions. Such
+    # questions' words barely overlap the answer chunk's text, so the rerank
+    # score lands well below RAG_MIN_CONFIDENCE_SCORE even when the vector
+    # search pinned the right chunk (~0.62 vs the general gate's 0.65).
+    RAG_CITATION_VECTOR_MIN_CONFIDENCE: float = 0.60
 
     GOOGLE_TRANSLATE_API_KEY: str = ""
     GOOGLE_TRANSLATE_BASE_URL: str = "https://translation.googleapis.com/language/translate/v2"

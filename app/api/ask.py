@@ -20,6 +20,10 @@ from app.models.tables import User
 from app.rag.agent import LLM_ERROR_FALLBACK, NO_RESULT_REFUSALS, rag_graph
 from app.rag.cache import get_cached_answer, set_cached_answer
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/ask", tags=["ask"])
 
 NO_RESULT_PATTERNS = (
@@ -125,11 +129,48 @@ def _build_source(
         chapter=s.get("chapter"),
         page=page,
         page_start=page,
+        page_end=s.get("page_end"),
+        page_offsets=s.get("page_offsets"),
+        minio_path=s.get("minio_path"),
         relevance_score=s.get("score", 0.0),
         text=s.get("text") or None,
         bbox=bbox_list,
+        page_bboxes=s.get("page_bboxes"),
         highlight_url=highlight_url,
     )
+
+
+async def _get_cached(
+    tenant_id: str, question: str, book_id: str | None
+) -> dict | None:
+    """Bounded, non-fatal cache read: a slow/broken Redis must degrade to a
+    cache miss (full RAG run) instead of hanging the request forever."""
+    try:
+        return await asyncio.wait_for(
+            get_cached_answer(tenant_id, question, book_id), timeout=5.0
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Cache read timed out, treating as miss")
+        return None
+    except Exception:
+        logger.exception("Cache read failed, treating as miss")
+        return None
+
+
+async def _set_cached(
+    tenant_id: str, question: str, cache_body: dict, book_id: str | None = None
+) -> None:
+    """Bounded, best-effort cache write: never fail the user request because
+    caching hiccuped."""
+    try:
+        await asyncio.wait_for(
+            set_cached_answer(tenant_id, question, cache_body, book_id),
+            timeout=5.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Cache write timed out, skipping cache")
+    except Exception:
+        logger.exception("Cache write failed, skipping cache")
 
 
 async def _record_stats(
@@ -187,8 +228,12 @@ async def ask_json(
     question = body.question
     book_id = body.book_id
     start = time.monotonic()
+    logger.info(
+        "[TRACE] ask start tenant=%s book_id=%s question=%r",
+        tenant_id, book_id, question[:300],
+    )
 
-    cached = await get_cached_answer(tenant_id, question, book_id)
+    cached = await _get_cached(tenant_id, question, book_id)
     if cached is not None:
         sources = [
             _build_source(s, i + 1, tenant_id)
@@ -233,10 +278,14 @@ async def ask_json(
     # Never cache LLM-error fallbacks: a transient provider outage would
     # otherwise serve the error for the whole cache TTL.
     if answer != LLM_ERROR_FALLBACK:
-        await set_cached_answer(tenant_id, question, cache_body)
+        await _set_cached(tenant_id, question, cache_body)
 
     elapsed = int((time.monotonic() - start) * 1000)
     await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
+    logger.info(
+        "[TRACE] ask done tenant=%s elapsed_ms=%d no_result=%s cached=%s sources=%d answer=%r",
+        tenant_id, elapsed, no_result, False, len(sources), answer[:300],
+    )
 
     return AnswerResponse(
         question=question,
@@ -262,7 +311,7 @@ async def ask_stream(
             media_type="text/event-stream",
         )
 
-    cached = await get_cached_answer(tenant_id, question, book_id)
+    cached = await _get_cached(tenant_id, question, book_id)
     if cached is not None:
         answer = cached["answer"]
         no_result = cached.get("no_result", False)
@@ -297,7 +346,7 @@ async def ask_stream(
             "no_result": no_result,
             "sources": raw_sources,
         }
-        await set_cached_answer(tenant_id, question, cache_body, book_id)
+        await _set_cached(tenant_id, question, cache_body, book_id)
         elapsed = int((time.monotonic() - start) * 1000)
         await _record_stats(tenant_id, was_cached=False, duration_ms=elapsed)
 

@@ -127,6 +127,11 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
         start_phase = _phase_index(job.checkpoint.get("phase", "queued"))
         start_page = job.checkpoint.get("page", 0)
 
+    logger.info(
+        "[TRACE] phase=job_start book_id=%s tenant=%s minio_path=%s resume_phase=%s",
+        book_id, tenant_id, minio_path, PHASE_ORDER[start_phase],
+    )
+
     stop_heartbeat = asyncio.Event()
     heartbeat_task = asyncio.ensure_future(_heartbeat_loop(book_id, stop_heartbeat))
 
@@ -137,6 +142,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
     try:
         if start_phase <= _phase_index("extracting"):
             pdf_bytes = await storage.get_file(settings.MINIO_BUCKET_BOOKS, minio_path)
+            logger.info("[TRACE] phase=extract book_id=%s pdf_bytes=%d", book_id, len(pdf_bytes))
             progress = {"current": 0, "total": 0}
 
             def _on_page_done(current: int, total: int) -> None:
@@ -164,6 +170,15 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
 
             pages = extract_task.result()
             total_pages = len(pages)
+            total_words = sum(len(p.get("words", [])) for p in pages)
+            footers = sum(1 for p in pages if p.get("footer_extracted"))
+            logger.info(
+                "[TRACE] phase=extract_done book_id=%s pages=%d words=%d avg_words_per_page=%.1f "
+                "footer_extracted=%d/%d",
+                book_id, total_pages, total_words,
+                total_words / total_pages if total_pages else 0,
+                footers, total_pages,
+            )
 
             # Validate footer-extracted page numbers before ingesting
             try:
@@ -203,6 +218,14 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                 chunk["book_type"] = book.book_type or ""
                 chunk["minio_path"] = minio_path
 
+            tokens = [c.get("token_count", 0) for c in chunks]
+            logger.info(
+                "[TRACE] phase=chunk_done book_id=%s chunks=%d tokens_total=%d avg_tokens=%.1f max_tokens=%d",
+                book_id, len(chunks), sum(tokens),
+                sum(tokens) / len(tokens) if tokens else 0,
+                max(tokens) if tokens else 0,
+            )
+
             await _update_job(
                 book_id, status="embedding", progress_pct=60, current_step="embedding",
                 checkpoint={"phase": "embedding"},
@@ -211,6 +234,10 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
         if start_phase <= _phase_index("embedding"):
             texts = [c["text"] for c in chunks]
             vectors = await embed_texts(texts)
+            logger.info(
+                "[TRACE] phase=embed_done book_id=%s vectors=%d dim=%d",
+                book_id, len(vectors), len(vectors[0]) if vectors else 0,
+            )
             await _update_job(
                 book_id, status="indexing", progress_pct=85, current_step="indexing",
                 checkpoint={"phase": "indexing"},
@@ -221,6 +248,10 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
             await index_to_meilisearch(chunks)
             async with AsyncSessionLocal() as session:
                 await update_book_status(book_id, len(chunks), session)
+            logger.info(
+                "[TRACE] phase=index_done book_id=%s chunks_indexed=%d",
+                book_id, len(chunks),
+            )
             await _update_job(
                 book_id, status="completed", progress_pct=100, current_step="completed",
                 checkpoint={"phase": "completed"},
