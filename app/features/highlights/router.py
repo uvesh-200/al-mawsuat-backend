@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.security import get_optional_current_user
 from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, User
-from app.pipeline.extractor import _words_from_tesseract
+from app.features.ingestion.extractor import _words_from_tesseract
 from app.core.storage import storage
 
 logger = logging.getLogger(__name__)

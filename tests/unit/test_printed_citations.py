@@ -12,7 +12,7 @@ match) and anchors on the page that contains MOST matched tokens.
 """
 import pytest
 
-from app.rag.agent import (
+from app.features.qa.agent import (
     _annotate_pages,
     _claim_page,
     _dense_page,

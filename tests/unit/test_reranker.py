@@ -6,7 +6,7 @@ question must score well below 0.30 (otherwise the quality gate never
 refuses), while the real Ash-Shifa' query must score well above it.
 """
 import pytest
-from app.rag.reranker import _query_terms, _term_overlap, normalise_transliteration, rerank
+from app.features.qa.reranker import _query_terms, _term_overlap, normalise_transliteration, rerank
 
 ASH_SHIFA_QUESTION = (
     "What did the author of Ash-Shifa' say about the order of honoring vs. "
@@ -51,7 +51,7 @@ MACRON_CHUNK = (
 
 class TestTransliterationNormalisation:
     def test_macron_stripped(self):
-        from app.rag.reranker import normalise_transliteration
+        from app.features.qa.reranker import normalise_transliteration
 
         assert normalise_transliteration("Kinānah") == "Kinanah"
         assert normalise_transliteration("al-Asqaʿ") == "al-Asqa"
@@ -151,7 +151,7 @@ class TestOverlapChunkSuppression:
     )
 
     def test_lower_scored_overlapping_chunk_suppressed(self):
-        from app.rag.reranker import _suppress_overlap_chunks
+        from app.features.qa.reranker import _suppress_overlap_chunks
 
         ranked = [
             {
@@ -174,7 +174,7 @@ class TestOverlapChunkSuppression:
         assert out[0]["page_start"] == 2
 
     def test_different_books_never_suppressed(self):
-        from app.rag.reranker import _suppress_overlap_chunks
+        from app.features.qa.reranker import _suppress_overlap_chunks
 
         ranked = [
             {
@@ -196,7 +196,7 @@ class TestOverlapChunkSuppression:
         assert len(out) == 2
 
     def test_non_overlapping_pages_kept(self):
-        from app.rag.reranker import _suppress_overlap_chunks
+        from app.features.qa.reranker import _suppress_overlap_chunks
 
         ranked = [
             {

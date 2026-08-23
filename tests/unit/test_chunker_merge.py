@@ -3,7 +3,7 @@
 These tests run without any live services.
 """
 import pytest
-from app.pipeline.chunker import (
+from app.features.ingestion.chunker import (
     CROSS_PAGE_MERGE_THRESHOLD,
     TARGET_MAX,
     chunk,

@@ -8,9 +8,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from app.rag.agent import _build_keyword_queries
-from app.rag.retriever import keyword_search
-from app.rag.reranker import _query_terms, normalise_transliteration
+from app.features.qa.agent import _build_keyword_queries
+from app.features.qa.retriever import keyword_search
+from app.features.qa.reranker import _query_terms, normalise_transliteration
 
 BOOK_ID = "daf67c12-873d-4690-b8be-c31efab7ae2a"
 TENANT = "default"

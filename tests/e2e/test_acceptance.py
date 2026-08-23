@@ -298,7 +298,7 @@ async def test_b1b_ingestion_validator_rejects_bad_page_numbers():
     This is a unit-style test embedded in the e2e suite so it runs alongside
     the live-stack tests and confirms the validator module is importable.
     """
-    from app.pipeline.page_number_validator import (
+    from app.features.ingestion.page_number_validator import (
         IngestionPageNumberError,
         validate_ingestion_page_numbers,
     )
@@ -416,7 +416,7 @@ async def test_b4a_short_hadith_and_commentary_single_page_citation(client):
 
 async def test_b4b_chunker_merge_reduces_cross_page_splits():
     """B4b — Unit test: cross-page merge must not increase chunk count."""
-    from app.pipeline.chunker import (
+    from app.features.ingestion.chunker import (
         CROSS_PAGE_MERGE_THRESHOLD,
         _merge_cross_page_chunks,
     )

@@ -7,7 +7,7 @@ modes found in QA:
 - chunks with no overlap splitting a claim from its supporting quote.
 """
 import pytest
-from app.pipeline.chunker import (
+from app.features.ingestion.chunker import (
     TARGET_MAX,
     chunk,
     _group_paragraphs,

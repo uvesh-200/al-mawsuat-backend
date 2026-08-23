@@ -3,7 +3,7 @@
 These tests run without any live services and do not require a PDF.
 """
 import pytest
-from app.pipeline.extractor import _extract_footer_page_number
+from app.features.ingestion.extractor import _extract_footer_page_number
 
 
 class TestWesternNumerals:
@@ -97,9 +97,9 @@ class TestOffsetConsistency:
     """Verify that a sequence of pages produces a consistent offset."""
 
     def _make_page(self, printed: int, physical: int) -> dict:
-        from app.pipeline.extractor import _ARABIC_INDIC
+        from app.features.ingestion.extractor import _ARABIC_INDIC
         text = f"نص الصفحة رقم {printed}\n\n{printed}"
-        from app.pipeline.extractor import _extract_footer_page_number
+        from app.features.ingestion.extractor import _extract_footer_page_number
         footer = _extract_footer_page_number(text)
         return {
             "page_num": footer if footer is not None else physical,
@@ -110,7 +110,7 @@ class TestOffsetConsistency:
     def test_consistent_6_page_offset(self):
         # Simulate a book with 6 front-matter pages, body starts at physical 7
         pages = [self._make_page(i - 6, i) for i in range(7, 17)]
-        from app.pipeline.extractor import _sanity_check_page_numbers
+        from app.features.ingestion.extractor import _sanity_check_page_numbers
         # Should not raise
         _sanity_check_page_numbers(pages)
         offsets = [p["physical_page"] - p["page_num"] for p in pages if p["footer_extracted"]]

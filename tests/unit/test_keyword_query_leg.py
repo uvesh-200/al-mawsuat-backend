@@ -6,7 +6,7 @@ translated leg, guaranteeing 0 hits against non-English (e.g. Arabic) indexed
 text. The query must combine the original-language terms with the English
 terms.
 """
-from app.rag.agent import _build_keyword_query, _build_keyword_queries
+from app.features.qa.agent import _build_keyword_query, _build_keyword_queries
 
 
 class TestBuildKeywordQuery:

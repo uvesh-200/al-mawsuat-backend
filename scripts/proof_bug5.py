@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 
 from app.core.config import settings
-from app.rag.agent import _build_providers, _chat_with_retry
+from app.features.qa.agent import _build_providers, _chat_with_retry
 
 
 async def main() -> None:

@@ -12,10 +12,10 @@ from app.core.embedder import embed_texts
 from app.core.events import publish_book_update, publish_job_update
 from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, ProcessingJob
-from app.pipeline.chunker import chunk as chunk_text
-from app.pipeline.extractor import extract
-from app.pipeline.indexer import index_to_meilisearch, index_to_qdrant, update_book_status
-from app.pipeline.page_number_validator import IngestionPageNumberError, validate_ingestion_page_numbers
+from app.features.ingestion.chunker import chunk as chunk_text
+from app.features.ingestion.extractor import extract
+from app.features.ingestion.indexer import index_to_meilisearch, index_to_qdrant, update_book_status
+from app.features.ingestion.page_number_validator import IngestionPageNumberError, validate_ingestion_page_numbers
 from app.core.storage import storage
 
 logger = logging.getLogger(__name__)

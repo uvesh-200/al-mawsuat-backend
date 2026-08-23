@@ -36,8 +36,8 @@ import fitz  # noqa: E402
 from app.features.qa.router import _build_source, _plausible_bbox  # noqa: E402
 from app.features.highlights.router import get_highlight  # noqa: E402
 from app.core.config import settings  # noqa: E402
-from app.pipeline.chunker import chunk  # noqa: E402
-from app.pipeline.extractor import _text_to_words, extract  # noqa: E402
+from app.features.ingestion.chunker import chunk  # noqa: E402
+from app.features.ingestion.extractor import _text_to_words, extract  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TENANT = settings.DEFAULT_TENANT_ID
@@ -213,7 +213,7 @@ def measure_highlight(before_png, after_png, dpi=RENDER_DPI):
 # --------------------------------------------------------------------------
 
 def citation_probe(payload: dict):
-    from app.rag.agent import (_MARKER_RE, _annotate_pages, _claim_page,
+    from app.features.qa.agent import (_MARKER_RE, _annotate_pages, _claim_page,
                                _claim_sentence, _claim_tokens, _format_passages)
     passages = [payload]
     markers = [int(m.group(1)) for m in _MARKER_RE.finditer(_format_passages(passages))]

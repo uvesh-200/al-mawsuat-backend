@@ -4,7 +4,7 @@ These tests run without any live services or LLM calls.
 """
 import re
 import pytest
-from app.rag.agent import (
+from app.features.qa.agent import (
     _validate_citations,
     _resolve_citations,
     _CITATION_TAG_RE,

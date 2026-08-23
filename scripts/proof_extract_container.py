@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, "/app")
 os.environ.setdefault("OCR_ENGINE", "tesseract")
 
-from app.pipeline.extractor import extract
+from app.features.ingestion.extractor import extract
 from app.core.storage import storage
 
 

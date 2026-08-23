@@ -4,7 +4,7 @@ A single min/max union of word bboxes across pages produces coordinates that
 exist on no page; the chunk must store one bbox per page (page_bboxes), with
 the top-level ``bbox`` expressed in page_start's coordinate space.
 """
-from app.pipeline.chunker import chunk
+from app.features.ingestion.chunker import chunk
 
 
 def _word(text: str, page_num: int, bbox: list[float]) -> dict:

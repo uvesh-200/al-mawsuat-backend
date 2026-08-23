@@ -7,7 +7,7 @@ citation resolution validates against the pages the passage really spans.
 """
 import pytest
 
-from app.rag.agent import _annotate_pages, _format_passages, _resolve_citations
+from app.features.qa.agent import _annotate_pages, _format_passages, _resolve_citations
 
 
 def _multi_page_passage(text: str = "هذا نص في الصفحة الخامسة ثم نص في الصفحة السادسة") -> dict:

@@ -1,7 +1,7 @@
 """Unit tests for the multi-provider fallback chain (no live calls)."""
 import pytest
 
-from app.rag.agent import _build_providers, _chat_with_retry
+from app.features.qa.agent import _build_providers, _chat_with_retry
 
 
 class _FakeError(Exception):
@@ -31,7 +31,7 @@ async def _run(messages=None, **kwargs):
 @pytest.fixture
 def monkeypatch_build(monkeypatch):
     def _patch(providers):
-        monkeypatch.setattr("app.rag.agent._build_providers", lambda: providers)
+        monkeypatch.setattr("app.features.qa.llm._build_providers", lambda: providers)
         return providers
     return _patch
 

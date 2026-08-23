@@ -14,7 +14,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-from app.rag.agent import rag_graph, _format_passages
+from app.features.qa.agent import rag_graph, _format_passages
 
 TENANT = "default"
 BOOK_ID = "daf67c12-873d-4690-b8be-c31efab7ae2a"

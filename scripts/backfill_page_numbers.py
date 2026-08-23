@@ -40,7 +40,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal
 from app.models.tables import Book
-from app.pipeline.extractor import _extract_footer_page_number
+from app.features.ingestion.extractor import _extract_footer_page_number
 from app.core.storage import storage
 
 logging.basicConfig(

@@ -5,7 +5,7 @@ The chunk ID is a uuid5 over the *normalised* chunk text + page span, so
 reprocessing a page whose OCR output differs only in tashkeel/tatweel/hamza
 spelling mints the same ID and upserts instead of duplicating vectors.
 """
-from app.pipeline.indexer import _make_chunk_id, _normalise_for_id
+from app.features.ingestion.indexer import _make_chunk_id, _normalise_for_id
 
 
 def _chunk(text: str, page_start: int = 1, page_end: int = 1) -> dict:

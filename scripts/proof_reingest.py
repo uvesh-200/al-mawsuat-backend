@@ -23,9 +23,9 @@ logging.basicConfig(
 )
 
 from app.core.config import settings
-from app.pipeline.chunker import chunk as chunk_text
-from app.pipeline.extractor import extract
-from app.pipeline.indexer import index_to_meilisearch, index_to_qdrant
+from app.features.ingestion.chunker import chunk as chunk_text
+from app.features.ingestion.extractor import extract
+from app.features.ingestion.indexer import index_to_meilisearch, index_to_qdrant
 from app.core.embedder import embed_texts
 from app.core.storage import storage
 
