@@ -96,3 +96,16 @@ Commits: e5da558 (core/), 7960091 (features/ + workers/), 1c1302b (ingestion spl
 - Constraint met: every module <=300 lines; facades re-export legacy names so tests import unchanged targets.
 - Verification: 146/146 unit tests green after each step; full-app import smoke blocked only by pre-existing missing sentry_sdk in host venv.
 - Caveats: Docker image not yet rebuilt against the new layout (docker compose build required before deploy); git CRLF warnings are cosmetic.
+
+### Container verification (d725ebf)
+
+Rebuilt fastapi/worker/beat images against the new layout and booted the full stack:
+- alembic upgrade head runs via entrypoint (validates app.core.db wiring)
+- 146/146 unit tests pass inside the image (run as python -m pytest)
+- gunicorn serves; GET /health -> {status ok, postgres/qdrant/redis ok}
+- celery worker ready; beat starts cleanly
+
+Three latent split bugs found only by container verification:
+1. workers.celery_app still imported dead repo-root workers.processor path
+2. qa/graph.py never compiled its StateGraph (rag_graph missing)
+3. agent facade missing LLM_ERROR_FALLBACK / NO_RESULT_REFUSALS / rag_graph re-exports
