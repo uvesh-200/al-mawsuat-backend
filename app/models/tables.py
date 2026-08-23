@@ -55,6 +55,7 @@ class Book(Base):
         nullable=True,
     )
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
 
 class ProcessingJob(Base):

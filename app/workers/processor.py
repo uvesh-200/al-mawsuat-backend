@@ -100,7 +100,11 @@ async def _heartbeat_loop(book_id: str, stop_event: asyncio.Event) -> None:
 async def _get_book(book_id: str) -> Book | None:
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Book).where(Book.id == book_id))
-        return result.scalar_one_or_none()
+        book = result.scalar_one_or_none()
+        if book is not None and book.deleted_at is not None:
+            # Soft-deleted while queued; skip processing, data stays intact.
+            return None
+        return book
 
 
 def _phase_index(status: str) -> int:

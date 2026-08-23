@@ -33,7 +33,11 @@ async def list_public_books(
     questions to a single document."""
     result = await session.execute(
         select(Book)
-        .where(Book.tenant_id == settings.DEFAULT_TENANT_ID, Book.status == "ready")
+        .where(
+            Book.tenant_id == settings.DEFAULT_TENANT_ID,
+            Book.status == "ready",
+            Book.deleted_at.is_(None),
+        )
         .order_by(Book.title.asc())
     )
     books = result.scalars().all()

@@ -64,7 +64,7 @@ async def get_stats(
 
     recent_result = await session.execute(
         select(Book)
-        .where(Book.tenant_id == tenant_id)
+        .where(Book.tenant_id == tenant_id, Book.deleted_at.is_(None))
         .order_by(Book.created_at.desc())
         .limit(5)
     )

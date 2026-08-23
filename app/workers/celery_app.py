@@ -153,7 +153,7 @@ def dispatch_pending() -> None:
                             select(Book).where(Book.id == job.book_id)
                         )
                         book = book_result.scalar_one_or_none()
-                        if book is None:
+                        if book is None or book.deleted_at is not None:
                             await session.execute(
                                 sa_delete(ProcessingJob).where(ProcessingJob.id == job.id)
                             )
@@ -207,7 +207,7 @@ def reap_stale_jobs() -> None:
                         select(Book).where(Book.id == job.book_id)
                     )
                     book = book_result.scalar_one_or_none()
-                    if book is None:
+                    if book is None or book.deleted_at is not None:
                         await session.execute(
                             sa_delete(ProcessingJob).where(ProcessingJob.id == job.id)
                         )

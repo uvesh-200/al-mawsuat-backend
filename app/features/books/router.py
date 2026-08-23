@@ -133,8 +133,10 @@ async def list_books(
         page_size = limit
 
     tenant_filter = Book.tenant_id == settings.DEFAULT_TENANT_ID
-    base = select(Book).where(tenant_filter)
-    count_base = select(func.count(Book.id)).where(tenant_filter)
+    base = select(Book).where(tenant_filter, Book.deleted_at.is_(None))
+    count_base = select(func.count(Book.id)).where(
+        tenant_filter, Book.deleted_at.is_(None)
+    )
 
     if q:
         pattern = f"%{q}%"
@@ -171,7 +173,11 @@ async def get_book(
 ) -> BookDetailOut:
     result = await session.execute(select(Book).where(Book.id == uuid.UUID(book_id)))
     book = result.scalar_one_or_none()
-    if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
+    if (
+        book is None
+        or book.tenant_id != settings.DEFAULT_TENANT_ID
+        or book.deleted_at is not None
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
 
     job_result = await session.execute(
@@ -205,7 +211,11 @@ async def download_book(
 ) -> StreamingResponse:
     result = await session.execute(select(Book).where(Book.id == uuid.UUID(book_id)))
     book = result.scalar_one_or_none()
-    if book is None or not book.minio_path:
+    if (
+        book is None
+        or not book.minio_path
+        or book.deleted_at is not None
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
 
     data = await storage.get_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)

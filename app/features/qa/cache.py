@@ -36,3 +36,22 @@ async def set_cached_answer(
     key = _cache_key(tenant_id, question, book_id)
     r = await get_redis()
     await r.setex(key, 86400, json.dumps(response))
+
+
+async def invalidate_tenant_cache(tenant_id: str) -> None:
+    """Drop every cached answer for a tenant.
+
+    Called on book soft-delete/restore: otherwise a pre-delete cached answer
+    (with its sources) or a post-delete cached refusal would be served for up
+    to the 24h TTL regardless of the book's new visibility.
+    """
+    r = await get_redis()
+    pattern = f"cache:{tenant_id}:*"
+    batch: list[str] = []
+    async for key in r.scan_iter(match=pattern, count=200):
+        batch.append(key if isinstance(key, str) else key.decode())
+        if len(batch) >= 500:
+            await r.delete(*batch)
+            batch.clear()
+    if batch:
+        await r.delete(*batch)

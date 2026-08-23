@@ -14,6 +14,31 @@ QDRANT_COLLECTION = "documents"
 MEILISEARCH_INDEX = "documents"
 
 
+async def deleted_book_ids(tenant_id: str) -> list[str]:
+    """Ids of soft-deleted books for a tenant.
+
+    Soft delete keeps vectors and search docs in place, so every retrieval leg
+    must exclude them explicitly.
+    """
+    from sqlalchemy import select
+
+    from app.core.db import AsyncSessionLocal
+    from app.models.tables import Book
+
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Book.id).where(
+                    Book.tenant_id == tenant_id,
+                    Book.deleted_at.is_not(None),
+                )
+            )
+            return [str(row) for row in result.scalars().all()]
+    except Exception:
+        logger.exception("deleted_book_ids lookup failed; assuming none")
+        return []
+
+
 async def vector_search(
     vector: list[float],
     tenant_id: str,
@@ -31,6 +56,13 @@ async def vector_search(
         # pollute the candidates (cross-document contamination).
         if book_id:
             must.append(FieldCondition(key="book_id", match=MatchValue(value=book_id)))
+        # Soft-deleted books keep their vectors; exclude them explicitly.
+        deleted = await deleted_book_ids(tenant_id)
+        must_not: list = []
+        if deleted:
+            must_not.append(
+                Filter(must=[FieldCondition(key="book_id", match=MatchValue(value=d)) for d in deleted])
+            )
         logger.info(
             "Qdrant vector_search: collection=%s filter=%s limit=%s",
             QDRANT_COLLECTION,
@@ -41,7 +73,7 @@ async def vector_search(
             collection_name=QDRANT_COLLECTION,
             query_vector=vector,
             limit=top_k,
-            query_filter=Filter(must=must),
+            query_filter=Filter(must=must, must_not=must_not),
             with_payload=True,
         )
         logger.info(
@@ -110,6 +142,9 @@ async def keyword_search(
         filters = [f"tenant_id = {tenant_id}"]
         if book_id:
             filters.append(f"book_id = {book_id}")
+        # Soft-deleted books keep their docs; exclude them explicitly.
+        for d in await deleted_book_ids(tenant_id):
+            filters.append(f"book_id != {d}")
 
         def _search(q: str) -> dict:
             client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY, timeout=10)

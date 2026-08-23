@@ -13,7 +13,6 @@ from app.core.config import settings
 from app.core.security import get_current_user
 from app.core.db import get_db
 from app.models.tables import Book, ProcessingJob, User
-from app.core.storage import storage
 from app.workers.celery_app import process_book
 
 router = APIRouter(prefix="/admin/books", tags=["books_admin"])
@@ -55,13 +54,17 @@ async def _delete_from_meilisearch(book_id: str) -> None:
     try:
         import meilisearch
         client = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_KEY)
-        try:
-            resp = client.index("documents").search("", opt_params={"filter": [f"book_id={book_id}"], "limit": 1000})
+        index = client.index("documents")
+        # Paginate until dry: a single 1000-hit page silently left stale docs
+        # behind for books with more chunks than the limit.
+        while True:
+            resp = index.search("", opt_params={"filter": [f"book_id={book_id}"], "limit": 1000})
             ids = [h["id"] for h in resp.get("hits", [])]
-            if ids:
-                client.index("documents").delete_documents(ids)
-        except meilisearch.errors.MeilisearchApiError:
-            pass
+            if not ids:
+                break
+            index.delete_documents(ids)
+    except meilisearch.errors.MeilisearchApiError:
+        pass
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Failed to delete book %s from Meilisearch: %s", book_id, e)
@@ -164,10 +167,21 @@ async def delete_book(
     user: Annotated[User, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_db)] = None,
 ) -> None:
+    """Soft-delete a book.
+
+    Nothing is destroyed: the row, its processing jobs, the MinIO PDF and all
+    derived data (Qdrant vectors, Meilisearch docs) are kept. The book is only
+    flagged (books.deleted_at) and every read/retrieval path excludes it.
+    Use POST /{book_id}/restore to bring it back instantly.
+    """
+    import datetime
+
     result = await session.execute(select(Book).where(Book.id == uuid.UUID(book_id)))
     book = result.scalar_one_or_none()
     if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.deleted_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Book already deleted")
 
     job_result = await session.execute(
         select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))
@@ -180,17 +194,33 @@ async def delete_book(
         except Exception:
             pass
 
-    await asyncio.gather(_delete_from_qdrant(book_id), _delete_from_meilisearch(book_id))
-
-    if book.minio_path:
-        try:
-            await storage.delete_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning("Failed to delete book %s from MinIO: %s", book_id, e)
-    await session.execute(sa_delete(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id)))
-    await session.execute(sa_delete(Book).where(Book.id == uuid.UUID(book_id)))
+    book.deleted_at = datetime.datetime.now(datetime.timezone.utc)
     await session.commit()
+
+    from app.features.qa.cache import invalidate_tenant_cache
+    await invalidate_tenant_cache(book.tenant_id)
+
+
+@router.post("/{book_id}/restore", status_code=status.HTTP_202_ACCEPTED)
+async def restore_book(
+    book_id: str,
+    user: Annotated[User, Depends(get_current_user)] = None,
+    session: Annotated[AsyncSession, Depends(get_db)] = None,
+) -> dict:
+    """Undo a soft delete; vectors and search docs were never removed."""
+    result = await session.execute(select(Book).where(Book.id == uuid.UUID(book_id)))
+    book = result.scalar_one_or_none()
+    if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.deleted_at is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Book is not deleted")
+
+    book.deleted_at = None
+    await session.commit()
+
+    from app.features.qa.cache import invalidate_tenant_cache
+    await invalidate_tenant_cache(book.tenant_id)
+    return {"book_id": book_id, "restored": True}
 
 
 @router.post("/{book_id}/reprocess", status_code=status.HTTP_202_ACCEPTED)
@@ -203,6 +233,8 @@ async def reprocess_book(
     book = result.scalar_one_or_none()
     if book is None or book.tenant_id != settings.DEFAULT_TENANT_ID:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if book.deleted_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Book is deleted; restore it first")
 
     old_job_result = await session.execute(
         select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))

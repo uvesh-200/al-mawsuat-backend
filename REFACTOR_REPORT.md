@@ -124,3 +124,31 @@ scripts/static_import_check.py (AST undefined-name sweep, now clean).
 Result: 27 passed / 3 skipped (fixture book 394ed100 not present in this
 environment's volumes; highlight + mahbubi tests now adapt or skip with a
 clear reason). Unit suite stays at 146 green.
+
+## Soft delete (books)
+
+Requirement: deleting a book must never destroy anything - the row, its
+MinIO PDF, Qdrant vectors and Meilisearch docs all stay; the book just
+disappears from every read path, fully reversible via restore.
+
+- Migration 0005_book_soft_delete: books.deleted_at (timestamptz, indexed).
+- DELETE /admin/books/{id}: flags deleted_at + revokes a running job only
+  (409 on double delete). No storage/vector/search/row deletion anywhere.
+- POST /admin/books/{id}/restore: clears the flag; data is instantly usable
+  again because nothing was ever removed.
+- Reprocess now 409s for deleted books, and _delete_from_meilisearch was
+  fixed to paginate until dry (a single 1000-hit page silently left stale
+  docs behind for >1000-chunk books).
+- Read-path exclusion: admin list/detail/PDF, public /books catalog,
+  dashboard stats and highlight lookup all filter deleted_at IS NULL.
+- Retrieval exclusion: qa/retriever fetches deleted book_ids per tenant and
+  adds a Qdrant must_not plus Meilisearch book_id != X filters, so answers
+  never cite hidden content while the vectors remain intact.
+- Workers: dispatch_pending/reap_stale_jobs drop jobs of deleted books;
+  processor._get_book skips books soft-deleted mid-queue.
+- Answer cache (24h TTL) is invalidated per tenant on delete AND restore,
+  so stale pre-delete answers or post-delete refusals are never served.
+
+Verified live against the running stack: delete hides the book everywhere,
+same-question asks return zero sources (no cache leak), restore brings it
+all back without any reprocessing. Unit suite 146 green, STATIC-OK.

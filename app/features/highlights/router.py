@@ -190,7 +190,11 @@ async def get_highlight(
         result = await session.execute(select(Book).where(Book.id == book_uuid))
         book = result.scalar_one_or_none()
 
-    if book is None or book.tenant_id != user_tenant:
+    if (
+        book is None
+        or book.tenant_id != user_tenant
+        or book.deleted_at is not None
+    ):
         raise HTTPException(status_code=403, detail="Book not found or access denied")
 
     if book.total_pages is not None and page > book.total_pages:
