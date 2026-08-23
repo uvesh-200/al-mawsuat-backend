@@ -33,11 +33,11 @@ celery_app.conf.update(
 
 celery_app.conf.beat_schedule = {
     "dispatch-pending": {
-        "task": "workers.celery_app.dispatch_pending",
+        "task": "app.workers.celery_app.dispatch_pending",
         "schedule": 60.0,
     },
     "reap-stale-jobs": {
-        "task": "workers.celery_app.reap_stale_jobs",
+        "task": "app.workers.celery_app.reap_stale_jobs",
         "schedule": 300.0,
     },
 }

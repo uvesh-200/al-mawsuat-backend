@@ -7,7 +7,7 @@ The endpoint must know whether a render actually drew a highlight:
 """
 import fitz
 
-from app.api.highlight import render_highlight
+from app.features.highlights.router import render_highlight
 
 W, H = 595.0, 842.0
 

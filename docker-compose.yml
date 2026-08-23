@@ -145,7 +145,7 @@ services:
       MINIO_ENDPOINT: minio:9000
       QDRANT_HOST: qdrant
       MEILISEARCH_URL: http://meilisearch:7700
-    command: ["celery", "-A", "workers.celery_app", "beat", "--loglevel=info"]
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
     depends_on:
       - postgres
       - pgbouncer

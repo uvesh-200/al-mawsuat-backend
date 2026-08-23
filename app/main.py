@@ -10,21 +10,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-from app.api.admin import router as admin_router
-from app.api.ask import router as ask_router
-from app.api.auth import router as auth_router
-from app.api.books import router as books_router
-from app.api.books_admin import router as books_admin_router
-from app.api.catalog import router as catalog_router
-from app.api.events import router as events_router
-from app.api.highlight import router as highlight_router
-from app.api.jobs import router as jobs_router
-from app.api.settings import router as settings_router
-from app.api.users import router as users_router
 from app.core.config import settings
 from app.core.health import check_postgres, check_qdrant, check_redis
 from app.core.logging import StructuredLoggingMiddleware
 from app.core.storage import storage
+from app.features.auth.router import router as auth_router
+from app.features.books.admin_router import router as books_admin_router
+from app.features.books.router import router as books_router
+from app.features.catalog.router import router as catalog_router
+from app.features.highlights.router import router as highlight_router
+from app.features.jobs.router import router as jobs_router
+from app.features.qa.router import router as ask_router
+from app.features.system.admin_router import router as admin_router
+from app.features.system.events_router import router as events_router
+from app.features.system.settings_router import router as settings_router
+from app.features.users.router import router as users_router
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(

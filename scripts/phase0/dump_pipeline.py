@@ -33,8 +33,8 @@ sys.path.insert(0, str(REPO))
 
 import fitz  # noqa: E402
 
-from app.api.ask import _build_source, _plausible_bbox  # noqa: E402
-from app.api.highlight import get_highlight  # noqa: E402
+from app.features.qa.router import _build_source, _plausible_bbox  # noqa: E402
+from app.features.highlights.router import get_highlight  # noqa: E402
 from app.core.config import settings  # noqa: E402
 from app.pipeline.chunker import chunk  # noqa: E402
 from app.pipeline.extractor import _text_to_words, extract  # noqa: E402
@@ -146,7 +146,7 @@ class _FSStorage:
 
 
 def install_endpoint_stubs(book, storage_root: Path):
-    import app.api.highlight as H
+    import app.features.highlights.router as H
 
     H.AsyncSessionLocal = lambda: _Session(book)
     H.storage = _FSStorage(storage_root)

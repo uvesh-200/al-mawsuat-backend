@@ -15,7 +15,7 @@ from app.core.security import get_current_user
 from app.core.db import get_db
 from app.models.tables import Book, ProcessingJob, User
 from app.core.storage import storage
-from workers.celery_app import process_book
+from app.workers.celery_app import process_book
 
 router = APIRouter(prefix="/admin/books", tags=["books"])
 

@@ -14,7 +14,7 @@ from app.core.security import get_current_user
 from app.core.db import get_db
 from app.models.tables import Book, ProcessingJob, User
 from app.core.storage import storage
-from workers.celery_app import process_book
+from app.workers.celery_app import process_book
 
 router = APIRouter(prefix="/admin/books", tags=["books_admin"])
 
@@ -148,7 +148,7 @@ async def update_book(
         await _update_qdrant_payload(book_id, data)
         await _update_meilisearch_docs(book_id, data)
 
-    from app.api.books import BookOut
+    from app.features.books.router import BookOut
     return BookOut(
         id=str(book.id), title=book.title, author=book.author,
         language=book.language, book_type=book.book_type, status=book.status,
@@ -175,7 +175,7 @@ async def delete_book(
     job = job_result.scalar_one_or_none()
     if job is not None and job.task_id:
         try:
-            from workers.celery_app import celery_app
+            from app.workers.celery_app import celery_app
             celery_app.control.revoke(job.task_id, terminate=True)
         except Exception:
             pass
@@ -210,7 +210,7 @@ async def reprocess_book(
     old_job = old_job_result.scalar_one_or_none()
     if old_job is not None and old_job.task_id:
         try:
-            from workers.celery_app import celery_app
+            from app.workers.celery_app import celery_app
             celery_app.control.revoke(old_job.task_id, terminate=True)
         except Exception:
             pass
