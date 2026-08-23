@@ -1,4 +1,5 @@
 """Book extraction pipelines (Tesseract / Gemini) - public entry point."""
+import asyncio
 import logging
 import os
 import re

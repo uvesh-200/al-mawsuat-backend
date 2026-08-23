@@ -13,6 +13,7 @@ from app.features.ingestion.geometry import (
 from app.features.ingestion.layout import (
     _group_paragraphs,
     _is_heading_line,
+    _line_end_index,
     _line_start_index,
     _line_text,
 )

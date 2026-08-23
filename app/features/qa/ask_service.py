@@ -83,6 +83,7 @@ def _plausible_bbox(bbox: list[float]) -> bool:
 def _build_source(
     s: dict, rank: int, tenant_id: str
 ) -> SourceItem:
+    page = s.get("page_start")
     bbox_raw = s.get("bbox")
     bbox_list: list[float] | None = None
     if bbox_raw is not None:
@@ -124,7 +125,6 @@ def _build_source(
 
     highlight_url = None
     book_id = str(s.get("book_id") or "")
-    page = s.get("page_start")
     if book_id and page is not None:
         query = f"book_id={book_id}&page={page}"
         if bbox_list and len(bbox_list) == 4:

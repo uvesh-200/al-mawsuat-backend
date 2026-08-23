@@ -4,7 +4,11 @@ import logging
 
 from app.core.config import settings
 from app.core.embedder import embed_query
-from app.core.translation import detect_language, translate_for_retrieval
+from app.core.translation import (
+    detect_language,
+    translate_for_retrieval,
+    translate_to_english,
+)
 from app.features.qa.citations import _is_citation_question
 from app.features.qa.passages import _truncate_text
 from app.features.qa.reranker import (

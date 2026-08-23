@@ -8,12 +8,14 @@ from app.core.translation import detect_language
 from app.features.qa.citations import (
     _answer_language,
     _is_citation_question,
+    _iter_tag_indices,
     _resolve_citations,
     _validate_citations,
 )
 from app.features.qa.llm import _chat_with_retry
 from app.features.qa.passages import _format_passages
 from app.features.qa.prompts import (
+    CONSISTENCY_CHECK_PROMPT,
     GROUNDING_PROMPT_SYSTEM,
     LANGUAGE_NAMES,
     LLM_ERROR_FALLBACK,

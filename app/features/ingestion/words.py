@@ -1,9 +1,14 @@
 """Word extraction: fitz text layer, Tesseract OCR, Gemini text heuristics."""
 import logging
+import os
 import re
+import subprocess
+import tempfile
 import unicodedata
 
 import fitz
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
