@@ -82,3 +82,17 @@ Frontend counterpart: `0a1d0ce` fix(viewer): warn on malformed source geometry e
 - **Phase 2**: frontend feature folders + typed API client layer
 - **Phase 3+**: multi-tenancy hardening, admin/analytics endpoints, perf work,
   documentation — per spec sections 4–9 (details filled in as each lands)
+
+## Phase 1 - Structural decomposition (COMPLETE, host-verified)
+
+Commits: e5da558 (core/), 7960091 (features/ + workers/), 1c1302b (ingestion split + rag removal).
+
+- app/core/: config.py, db.py, storage.py (ex minio_client), security.py (ex core/auth)
+- app/features/{auth,users,catalog,jobs,system,highlights,books,qa,ingestion}/ routers moved from api/
+- workers/ -> app/workers/; alembic env + compose Dockerfile CMD updated
+- qa monolith (rag/agent.py 1170L) decomposed into features/qa/{prompts,llm,retrieval,claim_matching,citations,page_resolution,passages,state,graph}; agent.py kept as re-export facade; monolith deleted
+- pipeline -> features/ingestion/: extractor{,/page_numbers,/words}, chunker{,/layout,/paragraphs,/geometry}, shared sizing.py
+- qa/router.py (400L) split into router + ask_service.py
+- Constraint met: every module <=300 lines; facades re-export legacy names so tests import unchanged targets.
+- Verification: 146/146 unit tests green after each step; full-app import smoke blocked only by pre-existing missing sentry_sdk in host venv.
+- Caveats: Docker image not yet rebuilt against the new layout (docker compose build required before deploy); git CRLF warnings are cosmetic.
