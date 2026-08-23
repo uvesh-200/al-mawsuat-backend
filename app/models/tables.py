@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
-from app.config import settings
-from app.models.db import Base
+from app.core.config import settings
+from app.core.db import Base
 
 
 def _tenant_id_default() -> str:

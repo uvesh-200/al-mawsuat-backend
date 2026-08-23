@@ -1,4 +1,4 @@
-from app.models.db import AsyncSessionLocal, Base, engine, get_db
+from app.core.db import AsyncSessionLocal, Base, engine, get_db
 from app.models.tables import Book, ProcessingJob, RefreshToken, User
 
 __all__ = [

@@ -8,8 +8,8 @@ import redis.asyncio as aioredis
 from celery import Celery
 from sqlalchemy import delete as sa_delete, select, update
 
-from app.config import settings
-from app.models.db import AsyncSessionLocal
+from app.core.config import settings
+from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, ProcessingJob
 from workers.processor import process_book_async
 

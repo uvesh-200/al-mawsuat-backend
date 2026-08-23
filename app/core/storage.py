@@ -5,7 +5,7 @@ from typing import Optional
 from minio import Minio
 from minio.error import S3Error
 
-from app.config import settings
+from app.core.config import settings
 
 
 class StorageClient:

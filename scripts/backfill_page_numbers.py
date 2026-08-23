@@ -37,11 +37,11 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue, PointIdsList
 from sqlalchemy import select
 
-from app.config import settings
-from app.models.db import AsyncSessionLocal
+from app.core.config import settings
+from app.core.db import AsyncSessionLocal
 from app.models.tables import Book
 from app.pipeline.extractor import _extract_footer_page_number
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 logging.basicConfig(
     level=logging.INFO,

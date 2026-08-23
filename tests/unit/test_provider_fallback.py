@@ -94,33 +94,33 @@ class TestProviderChainFiltering:
     """Bug 5: LLM_PROVIDERS must exclude providers even when keys are set."""
 
     def test_deepseek_skipped_when_not_listed(self, monkeypatch):
-        monkeypatch.setattr("app.config.settings.GROQ_API_KEY", "gsk_test")
-        monkeypatch.setattr("app.config.settings.DEEPSEEK_API_KEY", "sk_dead")
-        monkeypatch.setattr("app.config.settings.GEMINI_API_KEY", "gem-test")
-        monkeypatch.setattr("app.config.settings.LLM_PROVIDERS", "groq,gemini")
+        monkeypatch.setattr("app.core.config.settings.GROQ_API_KEY", "gsk_test")
+        monkeypatch.setattr("app.core.config.settings.DEEPSEEK_API_KEY", "sk_dead")
+        monkeypatch.setattr("app.core.config.settings.GEMINI_API_KEY", "gem-test")
+        monkeypatch.setattr("app.core.config.settings.LLM_PROVIDERS", "groq,gemini")
         names = [p.name for p in _build_providers()]
         assert names == ["groq", "gemini"]
         assert "deepseek" not in names
 
     def test_order_follows_llm_providers(self, monkeypatch):
-        monkeypatch.setattr("app.config.settings.GROQ_API_KEY", "gsk_test")
-        monkeypatch.setattr("app.config.settings.DEEPSEEK_API_KEY", "sk_test")
-        monkeypatch.setattr("app.config.settings.GEMINI_API_KEY", "gem-test")
-        monkeypatch.setattr("app.config.settings.LLM_PROVIDERS", "gemini,groq")
+        monkeypatch.setattr("app.core.config.settings.GROQ_API_KEY", "gsk_test")
+        monkeypatch.setattr("app.core.config.settings.DEEPSEEK_API_KEY", "sk_test")
+        monkeypatch.setattr("app.core.config.settings.GEMINI_API_KEY", "gem-test")
+        monkeypatch.setattr("app.core.config.settings.LLM_PROVIDERS", "gemini,groq")
         names = [p.name for p in _build_providers()]
         assert names == ["gemini", "groq"]
 
     def test_deepseek_runs_only_when_explicitly_listed(self, monkeypatch):
-        monkeypatch.setattr("app.config.settings.GROQ_API_KEY", "gsk_test")
-        monkeypatch.setattr("app.config.settings.DEEPSEEK_API_KEY", "sk_test")
-        monkeypatch.setattr("app.config.settings.GEMINI_API_KEY", "gem-test")
-        monkeypatch.setattr("app.config.settings.LLM_PROVIDERS", "groq,deepseek,gemini")
+        monkeypatch.setattr("app.core.config.settings.GROQ_API_KEY", "gsk_test")
+        monkeypatch.setattr("app.core.config.settings.DEEPSEEK_API_KEY", "sk_test")
+        monkeypatch.setattr("app.core.config.settings.GEMINI_API_KEY", "gem-test")
+        monkeypatch.setattr("app.core.config.settings.LLM_PROVIDERS", "groq,deepseek,gemini")
         names = [p.name for p in _build_providers()]
         assert names == ["groq", "deepseek", "gemini"]
 
     def test_provider_without_key_not_built_even_if_listed(self, monkeypatch):
-        monkeypatch.setattr("app.config.settings.GROQ_API_KEY", "")
-        monkeypatch.setattr("app.config.settings.GEMINI_API_KEY", "gem-test")
-        monkeypatch.setattr("app.config.settings.LLM_PROVIDERS", "groq,gemini")
+        monkeypatch.setattr("app.core.config.settings.GROQ_API_KEY", "")
+        monkeypatch.setattr("app.core.config.settings.GEMINI_API_KEY", "gem-test")
+        monkeypatch.setattr("app.core.config.settings.LLM_PROVIDERS", "groq,gemini")
         names = [p.name for p in _build_providers()]
         assert names == ["gemini"]

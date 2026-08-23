@@ -13,7 +13,7 @@ _root = Path(__file__).resolve().parents[1]
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
-from app.config import settings  # noqa: E402
+from app.core.config import settings  # noqa: E402
 from app.models.tables import Base  # noqa: E402
 
 config = context.config

@@ -2,8 +2,8 @@ import redis.asyncio as aioredis
 from qdrant_client import AsyncQdrantClient
 from sqlalchemy import text
 
-from app.config import settings
-from app.models.db import AsyncSessionLocal
+from app.core.config import settings
+from app.core.db import AsyncSessionLocal
 
 
 async def check_postgres() -> str:

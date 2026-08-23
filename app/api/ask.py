@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.config import settings
-from app.core.auth import get_optional_current_user
+from app.core.config import settings
+from app.core.security import get_optional_current_user
 from app.core.redis import get_redis
 from app.core.translation import detect_language
 from app.models.schemas import AnswerResponse, SourceItem

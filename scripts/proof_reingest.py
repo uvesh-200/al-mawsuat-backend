@@ -22,12 +22,12 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-from app.config import settings
+from app.core.config import settings
 from app.pipeline.chunker import chunk as chunk_text
 from app.pipeline.extractor import extract
 from app.pipeline.indexer import index_to_meilisearch, index_to_qdrant
 from app.core.embedder import embed_texts
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 logger = logging.getLogger("proof")
 

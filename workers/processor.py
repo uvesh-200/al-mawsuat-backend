@@ -7,16 +7,16 @@ from datetime import datetime, timezone
 import redis.asyncio as aioredis
 from sqlalchemy import select, update
 
-from app.config import settings
+from app.core.config import settings
 from app.core.embedder import embed_texts
 from app.core.events import publish_book_update, publish_job_update
-from app.models.db import AsyncSessionLocal
+from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, ProcessingJob
 from app.pipeline.chunker import chunk as chunk_text
 from app.pipeline.extractor import extract
 from app.pipeline.indexer import index_to_meilisearch, index_to_qdrant, update_book_status
 from app.pipeline.page_number_validator import IngestionPageNumberError, validate_ingestion_page_numbers
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 logger = logging.getLogger(__name__)
 

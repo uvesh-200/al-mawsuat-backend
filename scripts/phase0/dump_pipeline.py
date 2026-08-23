@@ -35,7 +35,7 @@ import fitz  # noqa: E402
 
 from app.api.ask import _build_source, _plausible_bbox  # noqa: E402
 from app.api.highlight import get_highlight  # noqa: E402
-from app.config import settings  # noqa: E402
+from app.core.config import settings  # noqa: E402
 from app.pipeline.chunker import chunk  # noqa: E402
 from app.pipeline.extractor import _text_to_words, extract  # noqa: E402
 

@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import fitz
 import httpx
 
-from app.config import settings
+from app.core.config import settings
 from app.core.ocr import ocr_batch
 
 logger = logging.getLogger(__name__)

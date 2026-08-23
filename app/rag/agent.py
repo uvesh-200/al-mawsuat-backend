@@ -8,7 +8,7 @@ import httpx
 from langgraph.graph import END, StateGraph
 from openai import AsyncOpenAI
 
-from app.config import settings
+from app.core.config import settings
 from app.core.embedder import embed_query
 from app.core.translation import detect_language, translate_for_retrieval, translate_to_english
 from app.rag.reranker import _query_terms, normalise_transliteration, rerank

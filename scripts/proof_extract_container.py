@@ -10,7 +10,7 @@ sys.path.insert(0, "/app")
 os.environ.setdefault("OCR_ENGINE", "tesseract")
 
 from app.pipeline.extractor import extract
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 
 async def main() -> None:

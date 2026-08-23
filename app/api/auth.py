@@ -10,11 +10,11 @@ from redis.asyncio import Redis
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
-from app.core.auth import UserManager, get_jwt_strategy, get_user_manager
+from app.core.config import settings
+from app.core.security import UserManager, get_jwt_strategy, get_user_manager
 from app.core.rate_limit import LoginRateLimiter
 from app.core.redis import get_redis
-from app.models.db import get_db
+from app.core.db import get_db
 from app.models.tables import RefreshToken, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])

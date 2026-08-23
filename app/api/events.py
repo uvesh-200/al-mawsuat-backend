@@ -9,9 +9,9 @@ from fastapi_users.jwt import decode_jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.core.config import settings
 from app.core.events import event_generator
-from app.models.db import get_db
+from app.core.db import get_db
 from app.models.tables import User
 
 router = APIRouter(prefix="/admin", tags=["events"])

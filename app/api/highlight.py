@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import select
 
-from app.config import settings
-from app.core.auth import get_optional_current_user
-from app.models.db import AsyncSessionLocal
+from app.core.config import settings
+from app.core.security import get_optional_current_user
+from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, User
 from app.pipeline.extractor import _words_from_tesseract
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 logger = logging.getLogger(__name__)
 

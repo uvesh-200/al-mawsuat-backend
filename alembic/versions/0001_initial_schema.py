@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from app.config import settings
+from app.core.config import settings
 
 revision: str = "0001"
 down_revision: Union[str, None] = None

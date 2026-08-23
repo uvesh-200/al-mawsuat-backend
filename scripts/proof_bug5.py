@@ -13,7 +13,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-from app.config import settings
+from app.core.config import settings
 from app.rag.agent import _build_providers, _chat_with_retry
 
 

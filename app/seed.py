@@ -9,8 +9,8 @@ from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlalchemy import select
 
-from app.config import settings
-from app.models.db import AsyncSessionLocal
+from app.core.config import settings
+from app.core.db import AsyncSessionLocal
 from app.models.tables import User
 
 

@@ -21,10 +21,10 @@ from app.api.highlight import router as highlight_router
 from app.api.jobs import router as jobs_router
 from app.api.settings import router as settings_router
 from app.api.users import router as users_router
-from app.config import settings
+from app.core.config import settings
 from app.core.health import check_postgres, check_qdrant, check_redis
 from app.core.logging import StructuredLoggingMiddleware
-from app.storage.minio_client import storage
+from app.core.storage import storage
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(
