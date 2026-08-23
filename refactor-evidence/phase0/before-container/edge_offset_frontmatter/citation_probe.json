@@ -1,0 +1,19 @@
+{
+ "physical_pages_of_slices": [
+  1,
+  2,
+  3
+ ],
+ "markers_emitted": [
+  1,
+  1,
+  2
+ ],
+ "marker_space_mixed": true,
+ "expected_physical_page": 2,
+ "printed_of_expected": 1,
+ "resolved_citation_page": 2,
+ "resolved_equals_expected_physical": true,
+ "source_item_page_shown_in_ui": 1,
+ "ui_badge_differs_from_claim_page": true
+}

@@ -99,7 +99,28 @@ def _build_source(
             except (ValueError, TypeError):
                 bbox_list = None
     if bbox_list is not None and not _plausible_bbox(bbox_list):
+        logger.warning(
+            "Dropping implausible chunk bbox %s for book=%s page=%s (rank=%s); "
+            "viewer will fall back to text locate",
+            bbox_list, s.get("book_id"), page, rank,
+        )
         bbox_list = None
+
+    # Gate EVERY per-page box, not just the top-level one: the viewer prefers
+    # page_bboxes entries over the chunk-level bbox, so an implausible entry
+    # here reaches the /highlight endpoint verbatim and renders as a misplaced
+    # or full-page band. Synthetic OCR geometry (char-width heuristics) is the
+    # usual source of such entries.
+    raw_page_bboxes = s.get("page_bboxes") or []
+    page_bboxes = []
+    for pb in raw_page_bboxes:
+        if not isinstance(pb, dict) or not _plausible_bbox(pb.get("bbox")):
+            logger.warning(
+                "Dropping implausible per-page bbox entry %s for book=%s page=%s "
+                "(rank=%s)", pb, s.get("book_id"), page, rank,
+            )
+            continue
+        page_bboxes.append(pb)
 
     highlight_url = None
     book_id = str(s.get("book_id") or "")
@@ -135,7 +156,7 @@ def _build_source(
         relevance_score=s.get("score", 0.0),
         text=s.get("text") or None,
         bbox=bbox_list,
-        page_bboxes=s.get("page_bboxes"),
+        page_bboxes=page_bboxes,
         highlight_url=highlight_url,
     )
 

@@ -1,0 +1,16 @@
+{
+ "request": {
+  "book_id": "a9ced77a-7ee6-4d9e-b566-818a09d8438b",
+  "page": "1",
+  "bbox": "57.0,276.44061279296875,505.99200439453125,361.95465087890625"
+ },
+ "endpoint_status": 200,
+ "changed_px": 166608,
+ "region_pts": [
+  56.6,
+  276.5,
+  505.0,
+  361.0
+ ],
+ "region_area_ratio_of_page": 0.076
+}

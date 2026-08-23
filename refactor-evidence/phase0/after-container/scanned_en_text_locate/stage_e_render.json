@@ -1,0 +1,16 @@
+{
+ "request": {
+  "book_id": "dedffd0a-67f6-43a0-b766-c75440d13ca2",
+  "page": "2",
+  "text": "The marketplace inspector recorded prices twice daily, once after sunrise and once before sunset, so disputes could be c"
+ },
+ "endpoint_status": 200,
+ "changed_px": 611496,
+ "region_pts": [
+  55.7,
+  58.6,
+  483.8,
+  385.9
+ ],
+ "region_area_ratio_of_page": 0.28
+}

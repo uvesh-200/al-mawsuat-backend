@@ -1,0 +1,11 @@
+{
+ "request": {
+  "book_id": "664574d9-2e3c-4302-9ae5-f8f09485d11d",
+  "page": "1",
+  "text": "The early jurists debated whether intention transforms a lawful act into an unlawful one, and their conclusions shaped c"
+ },
+ "endpoint_status": null,
+ "error": "FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)",
+ "changed_px": 0,
+ "region_pts": null
+}

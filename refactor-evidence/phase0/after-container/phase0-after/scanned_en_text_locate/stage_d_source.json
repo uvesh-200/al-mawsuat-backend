@@ -1,0 +1,40 @@
+{
+ "bbox_after_gating": [
+  57.239999999999995,
+  252.35999999999999,
+  508.67999999999995,
+  768.6
+ ],
+ "top_bbox_plausible": true,
+ "per_page_plausibility": [
+  {
+   "page": 2,
+   "bbox": [
+    57.239999999999995,
+    252.35999999999999,
+    508.67999999999995,
+    768.6
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  }
+ ],
+ "page_rect": [
+  0.0,
+  0.0,
+  595.0,
+  842.0
+ ],
+ "viewer_query_params": {
+  "book_id": "96f61bb2-09fc-4e3f-a084-b3cdd131e4f0",
+  "page": "2",
+  "bbox": "57.239999999999995,252.35999999999999,508.67999999999995,768.6"
+ },
+ "viewer_chosen_box": [
+  57.239999999999995,
+  252.35999999999999,
+  508.67999999999995,
+  768.6
+ ],
+ "highlight_url_from_backend": "/highlight?book_id=96f61bb2-09fc-4e3f-a084-b3cdd131e4f0&page=2&bbox=57.239999999999995,252.35999999999999,508.67999999999995,768.6&text=The%20marketplace%20inspector%20recorded%20prices%20twice%20daily%2C%20once%20after%20sunrise%20and%20once%20before%20sunset%2C%20so%20disputes%20could%20be%20checked%20against%20both%20entries.%20The%20early%20jurists%20debated%20whether%20intention%20transforms%20a%20lawful%20act%20into%20an%20unlawful%20one%2C%20and%20their%20conclusions%20shaped%20centuries%20of%20legal%20thought.%20Ibn%20Rushd%20argued%20that%20custom%20carries%20weight%20equal%20to%20written%20statutes%20in%20matters%20of%20commerce%2C%20while%20stricter%20voices%20demanded%20explicit%20textual%20proof.%20A%20merchant%20in%20old%20Damascus%20kept%20three%20ledgers%3A%20one%20for%20debts%2C%20one%20for%20gifts%2C%20and%20one%20for%20the%20charity%20he%20distributed%20quietly%20before%20dawn%20each%20Friday.%20Schola"
+}

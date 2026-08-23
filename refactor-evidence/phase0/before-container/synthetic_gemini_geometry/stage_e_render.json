@@ -1,0 +1,10 @@
+{
+ "request": {
+  "book_id": "5c25389a-f24e-4db5-a802-f7d9f01e6f7a",
+  "page": "1",
+  "bbox": "0.0,0.0,1340.0,18.0"
+ },
+ "endpoint_status": 200,
+ "changed_px": 0,
+ "region_pts": null
+}

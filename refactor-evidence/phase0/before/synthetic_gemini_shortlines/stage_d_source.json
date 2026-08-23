@@ -1,0 +1,117 @@
+{
+ "bbox_after_gating": [
+  0.0,
+  0.0,
+  210.0,
+  18.0
+ ],
+ "top_bbox_plausible": true,
+ "per_page_plausibility": [
+  {
+   "page": 1,
+   "bbox": [
+    0.0,
+    0.0,
+    210.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 2,
+   "bbox": [
+    0.0,
+    0.0,
+    290.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 3,
+   "bbox": [
+    0.0,
+    0.0,
+    280.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 4,
+   "bbox": [
+    0.0,
+    0.0,
+    250.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 5,
+   "bbox": [
+    0.0,
+    0.0,
+    210.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 6,
+   "bbox": [
+    0.0,
+    0.0,
+    290.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 7,
+   "bbox": [
+    0.0,
+    0.0,
+    280.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  },
+  {
+   "page": 8,
+   "bbox": [
+    0.0,
+    0.0,
+    250.0,
+    18.0
+   ],
+   "plausible": true,
+   "inside_page_rect": true
+  }
+ ],
+ "page_rect": [
+  0.0,
+  0.0,
+  595.0,
+  842.0
+ ],
+ "viewer_query_params": {
+  "book_id": "89a9f0c2-e584-412b-86b3-4c39a15534d5",
+  "page": "1",
+  "bbox": "0.0,0.0,210.0,18.0"
+ },
+ "viewer_chosen_box": [
+  0.0,
+  0.0,
+  210.0,
+  18.0
+ ],
+ "highlight_url_from_backend": "/highlight?book_id=89a9f0c2-e584-412b-86b3-4c39a15534d5&page=1&bbox=0.0,0.0,210.0,18.0&text=%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86%20%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86"
+}

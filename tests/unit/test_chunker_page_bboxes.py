@@ -70,7 +70,8 @@ class TestPageBBoxes:
         # word i box: [5, 7+10i, 65, 7+10i+8] -> union y1 = 7+90+8 = 105
         assert c["bbox"] == [5.0, 7.0, 65.0, 105.0]
         assert c["page_bboxes"] == [{"page": 1, "bbox": [5.0, 7.0, 65.0, 105.0]}]
-        assert c["page_offsets"] == [{"page": 1, "start_char": 0, "end_char": len(c["text"]) - 1, "printed_page_num": None}]
+        # end_char is EXCLUSIVE (slice semantics shared with the JS viewer)
+        assert c["page_offsets"] == [{"page": 1, "start_char": 0, "end_char": len(c["text"]), "printed_page_num": None}]
 
     def test_page_offsets_tile_the_chunk_text(self):
         p1 = _page(1, _make_words(1, 3, 0.0, 0.0))
@@ -81,13 +82,58 @@ class TestPageBBoxes:
         c = multi[0]
         offsets = c["page_offsets"]
         assert [o["page"] for o in offsets] == [c["page_start"], c["page_end"]]
-        # segments are contiguous and tile the whole text exactly once
+        # segments are contiguous half-open ranges tiling the text exactly once
         assert offsets[0]["start_char"] == 0
-        assert offsets[-1]["end_char"] == len(c["text"]) - 1
+        assert offsets[-1]["end_char"] == len(c["text"])
         for a, b in zip(offsets, offsets[1:]):
-            assert b["start_char"] == a["end_char"] + 1
+            assert b["start_char"] == a["end_char"]
         # reconstruct the text from the segments — must equal the chunk text
         joined = "".join(
-            c["text"][o["start_char"] : o["end_char"] + 1] for o in offsets
+            c["text"][o["start_char"] : o["end_char"]] for o in offsets
         )
         assert joined == c["text"]
+
+    def test_synthetic_geometry_words_excluded_from_boxes(self):
+        """Gemini text-only OCR words carry char-width-heuristic boxes tagged
+        geom="synthetic". They support line/paragraph grouping but must never
+        become highlightable geometry — a page whose only words are synthetic
+        gets NO box (bbox None / empty page_bboxes) instead of a fictional
+        rectangle that renders as a misplaced band."""
+        real = _page(1, _make_words(1, 3, 10.0, 20.0))
+        synth_page = {
+            "page_num": 2,
+            "physical_page": 2,
+            "words": [
+                {"text": f"كلمة{i}", "page_num": 2, "physical_page": 2,
+                 "bbox": [i * 15.0, 0.0, i * 15.0 + 120.0, 18.0],
+                 "geom": "synthetic"}
+                for i in range(4)
+            ],
+        }
+        chunks = chunk([real, synth_page], "test-tenant")
+        for c in chunks:
+            pages = {pb["page"] for pb in c["page_bboxes"]}
+            assert 2 not in pages, "synthetic page must not produce a bbox"
+            if c["page_start"] == 2 and c["page_end"] == 2:
+                assert c["bbox"] is None
+                assert c["page_bboxes"] == []
+
+    def test_mixed_real_and_synthetic_pages_keep_real_box(self):
+        """A chunk spanning one real-geometry page and one synthetic-only page
+        keeps the real page's box; the synthetic page contributes nothing."""
+        real = _page(1, _make_words(1, 3, 10.0, 20.0))
+        synth_only = {
+            "page_num": 2,
+            "physical_page": 2,
+            "words": [
+                {"text": f"w{i}", "page_num": 2, "physical_page": 2,
+                 "bbox": [float(i * 100), 0.0, float(i * 100 + 80), 18.0],
+                 "geom": "synthetic"}
+                for i in range(30)
+            ],
+        }
+        chunks = chunk([real, synth_only], "test-tenant")
+        boxes = [pb for c in chunks for pb in c["page_bboxes"]]
+        assert all(pb["page"] == 1 for pb in boxes)
+        for pb in boxes:
+            assert pb["bbox"][2] < 1000, "real-page box must stay in page space"

@@ -1,0 +1,60 @@
+{
+ "text": "The early jurists debated whether intention transforms a lawful act into an unlawful one, and their conclusions shaped centuries of legal thought. Ibn Rushd argued that custom carries weight equal to written statutes in matters of commerce, while stricter voices demanded explicit textual proof. A merchant in old Damascus kept three ledgers: one for debts, one for gifts, and one for the charity he distributed quietly before dawn each Friday. Scholars disagree about the mystery of the ancient manuscript found in the old library, because its margins contain notes from at least four hands. The ﬁrst hand writes in a careful eastern script, the second corrects it, the third adds cross references, and the fourth merely counts the folios. Debate over water rights ﬁlled the autumn council sessions, and the ﬁnal settlement relied on testimony from farmers rather than written decrees. Every settlement of dispute begins with listening, the judge reminded the clerks, because a claim without context is a lamp without oil in wind. Manuscript copyists introduced errors of omission more often than errors of invention, since fatigue erased whole clauses but rarely added them. Students memorised the core text ﬁrst and only then approached commentary, for commentary without foundation drifts like a boat without an anchor. The marketplace inspector recorded prices twice daily, once after sunrise and once before sunset, so disputes could be checked against both entries. The early jurists debated whether intention transforms a lawful act into an unlawful one, and their conclusions shaped centuries of legal thought. Ibn Rushd argued that custom carries weight equal to written statutes in matters of commerce, while stricter voices demanded explicit textual proof. A merchant in old Damascus kept three ledgers: one for debts, one for gifts, and one for the charity he distributed quietly before dawn each Friday. Scholars disagree about the mystery of the ancient manuscript found in the old library, because its margins contain notes from at least four hands. The ﬁrst hand writes in a careful eastern script, the second corrects it, the third adds cross references, and the fourth merely counts the folios. 1 Debate over water rights ﬁlled the autumn council sessions, and the ﬁnal settlement relied on testimony from farmers rather than written decrees. Every settlement of dispute begins with listening, the judge reminded the clerks, because a claim without context is a lamp without oil in wind. Manuscript copyists introduced errors of omission more often than errors of invention, since fatigue erased whole clauses but rarely added them. Students memorised the core text ﬁrst and only then approached commentary, for commentary without foundation drifts like a boat without an anchor.",
+ "page_start": 1,
+ "page_end": 2,
+ "physical_page_start": 1,
+ "physical_page_end": 2,
+ "printed_page_start": 1,
+ "printed_page_end": 2,
+ "bbox": [
+  57.0,
+  54.37841796875,
+  509.5792541503906,
+  810.94873046875
+ ],
+ "page_bboxes": [
+  {
+   "page": 1,
+   "bbox": [
+    57.0,
+    54.37841796875,
+    509.5792541503906,
+    810.94873046875
+   ]
+  },
+  {
+   "page": 2,
+   "bbox": [
+    57.0,
+    54.37841796875,
+    509.5792541503906,
+    241.48486328125
+   ]
+  }
+ ],
+ "page_offsets": [
+  {
+   "page": 1,
+   "start_char": 0,
+   "end_char": 2215,
+   "printed_page_num": 1
+  },
+  {
+   "page": 2,
+   "start_char": 2216,
+   "end_char": 2797,
+   "printed_page_num": 2
+  }
+ ],
+ "chapter": null,
+ "tenant_id": "default",
+ "token_count": 439,
+ "_lang": "en",
+ "book_id": "19646fd7-64bc-4a6b-bc21-a20c30c9b6df",
+ "book_name": "Fixture Book",
+ "author": "Fixture Author",
+ "language": "en",
+ "book_type": "treatise",
+ "minio_path": "en_book.pdf",
+ "score": 0.9
+}

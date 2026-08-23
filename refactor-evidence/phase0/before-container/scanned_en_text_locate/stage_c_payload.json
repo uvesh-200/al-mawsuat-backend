@@ -1,0 +1,45 @@
+{
+ "text": "The marketplace inspector recorded prices twice daily, once after sunrise and once before sunset, so disputes could be checked against both entries. The early jurists debated whether intention transforms a lawful act into an unlawful one, and their conclusions shaped centuries of legal thought. Ibn Rushd argued that custom carries weight equal to written statutes in matters of commerce, while stricter voices demanded explicit textual proof. A merchant in old Damascus kept three ledgers: one for debts, one for gifts, and one for the charity he distributed quietly before dawn each Friday. Scholars disagree about the mystery of the ancient manuscript found in the old library, because its margins contain notes from at least four hands. The first hand writes in a careful eastern script, the second corrects it, the third adds cross references, and the fourth merely counts the folios. Debate over water rights filled the autumn council sessions, and the final settlement relied on testimony from farmers rather than written decrees. Every settlement of dispute begins with listening, the judge reminded the clerks, because a claim without context is a lamp without oil in wind. Manuscript copyists introduced errors of omission more often than errors of invention, since fatigue erased whole clauses but rarely added them. Students memorised the core text first and only then approached commentary, for commentary without foundation drifts like a boat without an anchor. The marketplace inspector recorded prices twice daily, once after sunrise and once before sunset, so disputes could be checked against both entries.",
+ "page_start": 2,
+ "page_end": 2,
+ "physical_page_start": 2,
+ "physical_page_end": 2,
+ "printed_page_start": null,
+ "printed_page_end": null,
+ "bbox": [
+  57.239999999999995,
+  252.35999999999999,
+  508.67999999999995,
+  768.6
+ ],
+ "page_bboxes": [
+  {
+   "page": 2,
+   "bbox": [
+    57.239999999999995,
+    252.35999999999999,
+    508.67999999999995,
+    768.6
+   ]
+  }
+ ],
+ "page_offsets": [
+  {
+   "page": 2,
+   "start_char": 0,
+   "end_char": 1624,
+   "printed_page_num": null
+  }
+ ],
+ "chapter": null,
+ "tenant_id": "default",
+ "token_count": 252,
+ "_lang": "en",
+ "book_id": "fd2b1151-b86d-412f-a4e1-d07ce3f67567",
+ "book_name": "Fixture Book",
+ "author": "Fixture Author",
+ "language": "en",
+ "book_type": "treatise",
+ "minio_path": "en_scanned.pdf",
+ "score": 0.9
+}

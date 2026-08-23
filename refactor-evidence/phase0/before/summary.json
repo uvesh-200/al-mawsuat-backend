@@ -1,0 +1,626 @@
+[
+ {
+  "case": "single_page_en",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    57.0,
+    630.3870239257812,
+    509.5690612792969,
+    810.947998046875
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 4,
+     "bbox": [
+      57.0,
+      630.3870239257812,
+      509.5690612792969,
+      810.947998046875
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "34167c1e-045b-46e5-b3d4-48bfaca0593e",
+    "page": "4",
+    "bbox": "57.0,630.3870239257812,509.5690612792969,810.947998046875"
+   },
+   "viewer_chosen_box": [
+    57.0,
+    630.3870239257812,
+    509.5690612792969,
+    810.947998046875
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=34167c1e-045b-46e5-b3d4-48bfaca0593e&page=4&bbox=57.0,630.3870239257812,509.5690612792969,810.947998046875&text=Manuscript%20copyists%20introduced%20errors%20of%20omission%20more%20often%20than%20errors%20of%20invention%2C%20since%20fatigue%20erased%20whole%20clauses%20but%20rarely%20added%20them.%20Students%20memorised%20the%20core%20text%20%EF%AC%81rst%20and%20only%20then%20approached%20commentary%2C%20for%20commentary%20without%20foundation%20drifts%20like%20a%20boat%20without%20an%20anchor.%20The%20marketplace%20inspector%20recorded%20prices%20twice%20daily%2C%20once%20after%20sunrise%20and%20once%20before%20sunset%2C%20so%20disputes%20could%20be%20checked%20against%20both%20entries.%204"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "34167c1e-045b-46e5-b3d4-48bfaca0593e",
+    "page": "4",
+    "bbox": "57.0,630.3870239257812,509.5690612792969,810.947998046875"
+   },
+   "endpoint_status": 200,
+   "changed_px": 354944,
+   "region_pts": [
+    56.6,
+    630.7,
+    508.8,
+    810.2
+   ],
+   "region_area_ratio_of_page": 0.162
+  }
+ },
+ {
+  "case": "multi_page_en",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    57.0,
+    54.387001037597656,
+    509.5690612792969,
+    810.947998046875
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      57.0,
+      54.387001037597656,
+      509.5690612792969,
+      810.947998046875
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 2,
+     "bbox": [
+      57.0,
+      54.387001037597656,
+      509.5690612792969,
+      241.48399353027344
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "7cb1c4f5-354d-451c-bed0-f0b09b6d7c50",
+    "page": "1",
+    "bbox": "57.0,54.387001037597656,509.5690612792969,810.947998046875"
+   },
+   "viewer_chosen_box": [
+    57.0,
+    54.387001037597656,
+    509.5690612792969,
+    810.947998046875
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=7cb1c4f5-354d-451c-bed0-f0b09b6d7c50&page=1&bbox=57.0,54.387001037597656,509.5690612792969,810.947998046875&text=The%20early%20jurists%20debated%20whether%20intention%20transforms%20a%20lawful%20act%20into%20an%20unlawful%20one%2C%20and%20their%20conclusions%20shaped%20centuries%20of%20legal%20thought.%20Ibn%20Rushd%20argued%20that%20custom%20carries%20weight%20equal%20to%20written%20statutes%20in%20matters%20of%20commerce%2C%20while%20stricter%20voices%20demanded%20explicit%20textual%20proof.%20A%20merchant%20in%20old%20Damascus%20kept%20three%20ledgers%3A%20one%20for%20debts%2C%20one%20for%20gifts%2C%20and%20one%20for%20the%20charity%20he%20distributed%20quietly%20before%20dawn%20each%20Friday.%20Scholars%20disagree%20about%20the%20mystery%20of%20the%20ancient%20manuscript%20found%20in%20the%20old%20library%2C%20because%20its%20margins%20contain%20notes%20from%20at%20least%20four%20hands.%20The%20%EF%AC%81rs"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "7cb1c4f5-354d-451c-bed0-f0b09b6d7c50",
+    "page": "1",
+    "bbox": "57.0,54.387001037597656,509.5690612792969,810.947998046875"
+   },
+   "endpoint_status": 200,
+   "changed_px": 1487744,
+   "region_pts": [
+    56.6,
+    54.7,
+    508.8,
+    810.2
+   ],
+   "region_area_ratio_of_page": 0.682
+  }
+ },
+ {
+  "case": "single_page_ar",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    56.999996185302734,
+    54.387001037597656,
+    464.9453430175781,
+    726.2420043945312
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      56.999996185302734,
+      54.387001037597656,
+      464.9453430175781,
+      726.2420043945312
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "2d994b13-9d63-4f3b-b9e7-6febd508e7e0",
+    "page": "1",
+    "bbox": "56.999996185302734,54.387001037597656,464.9453430175781,726.2420043945312"
+   },
+   "viewer_chosen_box": [
+    56.999996185302734,
+    54.387001037597656,
+    464.9453430175781,
+    726.2420043945312
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=2d994b13-9d63-4f3b-b9e7-6febd508e7e0&page=1&bbox=56.999996185302734,54.387001037597656,464.9453430175781,726.2420043945312&text=%EF%BB%A7%EF%BA%8E%EF%BB%97%EF%BA%B6%20%EF%BA%8D%C7%84%EF%BB%94%EF%BB%98%EF%BB%AC%EF%BA%8E%EF%BA%80%20%EF%BA%8D%C6%BE%20%EF%BB%AD%EF%BA%8D%EF%BA%8B%EF%BB%9E%20%EF%BB%A3%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%A8%EF%BB%B4%EF%BA%94%20%EF%BB%AD%EF%BA%83%EF%BA%9B%EF%BA%AE%EF%BB%AB%EF%BA%8E%20%EF%BB%93%EF%BB%B2%20%EF%BA%BB%EF%BA%A4%EF%BA%94%20%EF%BA%8D%C7%84%EF%BA%98%EF%BA%BC%EF%BA%AE%EF%BB%93%EF%BA%8E%EF%BA%95%20%EF%BA%8D%C7%84%EF%BA%B8%EF%BA%AE%EF%BB%8B%EF%BB%B4%EF%BA%94%20%EF%BB%8B%C7%81%EF%BB%B0%20%EF%BB%AD%EF%BA%9F%EF%BB%AA%20%EF%BA%8D%C7%84%EF%BA%98%EF%BB%94%EF%BA%BC%EF%BB%B4%EF%BB%9E.%20%EF%BB%AD%EF%BA%AB%EF%BB%9B%EF%BA%AE%20%EF%BA%9F%EF%BB%A4%EF%BB%AC%EF%BB%AE%EF%BA%AD%20%EF%BA%8D%C7%84%EF%BA%A4%EF%BB%A8%EF%BA%8E%EF%BA%91%C7%81%EF%BA%94%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BA%92%EF%BA%AE%EF%BA%93%20%EF%BB%93%EF%BB%B2%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BB%98%EF%BB%AE%EF%BA%A9%20%EF%BA%91%EF%BA%8E%C7%84%EF%BB%A4%EF%BB%98%EF%BA%8E%EF%BA%BB%EF%BA%AA%20%C6%BE%20%EF%BA%91%EF%BA%8E%C6%BE%20%C7%84%EF%BB%94%EF%BA%8E%EF%BB%85%20%EF%BA%8D%C7%84%EF%BA%98%EF%BB%B2%20%EF%BA%97%EF%BA%AE%EF%BA%A9%20%EF%BB%A3%EF%BB%A6%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%98%EF%BB%8C%EF%BA%8E%EF%BB%97%EF%BA%AA%EF%BB%B3%EF%BB%A6.%20%EF%BB%AD%EF%BA%8D%EF%BA%A7%EF%BA%98%C7%81%EF%BB%92%20%EF%BA%83%EF%BA%BB%EF%BA%A4%EF%BA%8E%EF%BA%8F%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%AC%EF%BA%8D%EF%BB%AB%EF%BA%90%20%EF%BB%93%EF%BB%B2%20%EF%BA%A3%EF%BB%9C%EF%BB%A2%20%EF%BA%91%EF%BB%B4%EF%BB%8A%20%EF%BA%8D%C7%84%EF%BB%AE%EF%BB%93%EF%BA%8E%EF%BA%80%20%EF%BB%AD%EF%BB%A3%EF%BA%8E%20%EF%BA%87%EF%BA%AB%EF%BA%8D%20%EF%BB%9B%EF%BA%8E%EF%BB%A5%20%EF%BB%B3%EF%BA%AE%EF%BA%97%EF%BA%90%20%EF%BA%83%EF%BA%9B%EF%BA%AE%EF%BA%8D%20%EF%BB%93%EF%BB%B2%20%EF%BA%AB%EF%BB%A3%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%AE%EF%BA%8D%EF%BA%8B%EF%BB%92%20%C7%84%EF%BB%AA.%20%EF%BB%97%EF%BA%8E%EF%BB%9D%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%BC%EF%BB%A8%EF%BB%92%20%EF%BB%93%EF%BB%B2%20%EF%BB%9B%EF%BA%98%EF%BA%8E%EF%BA%91%EF%BB%AA%20%EF%BA%87%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BB%93%EF%BB%B4%EF%BB%AC%EF%BA%8E%20%EF%BB%A7%EF%BB%88%EF%BA%AE%20%C6%BE%20%EF%BB%A5%20%EF%BA%8D%C6%BE%20%EF%BA%A9%C7%84%EF%BA%94%20%EF%BB%8B%C7%81%EF%BB%B4%EF%BB%AC%EF%BA%8E%20%EF%BB%A3%EF%BA%A8%EF%BA%98%C7%81%EF%BB%94%EF%BA%94%20%EF%BB%AD%EF%BB%A3%EF%BA%98%EF%BB%98%EF%BA%8E%EF%BA%AD%EF%BA%91%EF%BA%94.%20%EF%BB%AD%EF%BA%83%EF%BA%B7%EF%BA%8E%EF%BA%AD%20%EF%BA%91%EF%BB%8C%EF%BA%BE%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%A4%EF%BB%98%EF%BB%98%EF%BB%B4%EF%BB%A6%20%EF%BA%87%C7%84%EF%BB%B0%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BA%AE%EF%BB%91%20%EF%BB%B3%EF%BA%A4%EF%BB%A4%EF%BB%9E%20%EF%BA%A9%C6%BE%20%C7%84%EF%BA%94%20%EF%BB%97%EF%BB%AE%EF%BB%B3%EF%BA%94%20%EF%BA%87%EF%BA%AB%EF%BA%8D%20%C7%84%EF%BB%A2%20%EF%BB%B3%EF%BB%AE%EF%BA%9F%EF%BA%AA%20%EF%BB%A7%EF%BA%BA%20%EF%BA%A7%EF%BA%8E%EF%BA%B9%20%EF%BB%93%EF%BB%B2%20%EF%BA%8D%C7%84%EF%BA%92%EF%BA%8E%EF%BA%8F.%20%EF%BB%AD%EF%BA%97%EF%BA%98%EF%BA%92%EF%BB%8A%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%A4%EF%BA%AA%EF%BA%9B%EF%BB%AE%EF%BB%A5%20%EF%BB%83%EF%BA%AE%EF%BB%95%20%EF%BA%8D%C7%84%EF%BA%AE%EF%BB%AD%EF%BA%8D%EF%BB%B3%EF%BA%94%20%EF%BB%8B%EF%BB%A6%20%EF%BA%B7%EF%BB%B4%EF%BB%AE%EF%BA%A5%20%EF%BA%8D%C7%84%EF%BA%92%C7%81%EF%BA%AA%20%EF%BA%A3%EF%BA%98%EF%BB%B0%20%EF%BA%8D%EF%BA%B3%EF%BA%98%EF%BB%98%EF%BA%AE%20%EF%BA%8D%C7%84%EF%BA%A4%EF%BA%AA%EF%BB%B3%EF%BA%9A%20%EF%BB%8B%C7%81%EF%BB%B0%20%EF%BB%AD%EF%BA%9F%EF%BB%AC%EF%BB%AA%20%EF%BA%8D%C7%84%EF%BA%BC%EF%BA%A4%EF%BB%B4%EF%BA%A2.%20%EF%BB%AD%EF%BA%91%EF%BB%B4%20%EF%BB%A6%20%EF%BA%B7%EF%BA%AE%EF%BA%8D%EF%BA%A1%20%EF%BA%8D%C7%84%EF%BB%9C%EF%BA%98%EF%BA%8E%EF%BA%8F%20%EF%BA%83%EF%BB%A5%20%EF%BB%8B%EF%BB%A4%EF%BB%AE%EF%BB%A1%20%EF%BA%8D%C7%84%C7%81%EF%BB%94%EF%BB%86%20%EF%BB%B3%EF%BA%A0%EF%BB%AE%EF%BA%AF%20%EF%BA%83%EF%BB%A5%20%EF%BB%B3%EF%BA%A8%EF%BA%BC%EF%BA%BA%20%EF%BA%91%EF%BA%AA%C7%84%EF%BB%B4%EF%BB%9E%20%EF%BB%8B%EF%BB%98%C7%81%EF%BB%B2%20%EF%BA%83%EF%BB%AD%20%EF%BB%A7%EF%BB%98%C7%81%EF%BB%B2%20%EF%BB%A3%EF%BB%8C%EF%BA%98%EF%BA%92%EF%BA%AE.%20%EF%BB%AD%EF%BA%A7%C7%82%20%EF%BA%BB%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%98%EF%BB%AE%EF%BB%9D%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BA%97%EF%BA%AE%EF%BA%9F%EF%BB%8A%20%EF%BA%87%C7%84%EF%BB%B0%20%EF%BA%8D%EF%BB%8B%EF%BA%98%EF%BA%92%EF%BA%8E%EF%BA%AD%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%84%EF%BB%A3%EF%BB%AE%EF%BA%AD%20%EF%BA%91%EF%BB%AA%20%EF%BB%A7%EF%BB%B4%EF%BA%94%20%EF%BB%8B%EF%BB%A8%EF%BA%AA%20"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "2d994b13-9d63-4f3b-b9e7-6febd508e7e0",
+    "page": "1",
+    "bbox": "56.999996185302734,54.387001037597656,464.9453430175781,726.2420043945312"
+   },
+   "endpoint_status": 200,
+   "changed_px": 1192800,
+   "region_pts": [
+    56.6,
+    54.7,
+    464.6,
+    725.8
+   ],
+   "region_area_ratio_of_page": 0.547
+  }
+ },
+ {
+  "case": "multi_page_ar",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    57.0,
+    726.3870239257812,
+    459.1201171875,
+    810.947998046875
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      57.0,
+      726.3870239257812,
+      459.1201171875,
+      810.947998046875
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 2,
+     "bbox": [
+      56.999996185302734,
+      54.387001037597656,
+      464.9453430175781,
+      678.2420043945312
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "b249ca99-f2e3-461d-89de-aeae1751f24e",
+    "page": "1",
+    "bbox": "57.0,726.3870239257812,459.1201171875,810.947998046875"
+   },
+   "viewer_chosen_box": [
+    57.0,
+    726.3870239257812,
+    459.1201171875,
+    810.947998046875
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=b249ca99-f2e3-461d-89de-aeae1751f24e&page=1&bbox=57.0,726.3870239257812,459.1201171875,810.947998046875&text=%EF%BB%AD%EF%BA%83%EF%BA%B7%EF%BA%8E%EF%BA%AD%20%EF%BA%91%EF%BB%8C%EF%BA%BE%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%A4%EF%BB%98%EF%BB%98%EF%BB%B4%EF%BB%A6%20%EF%BA%87%C7%84%EF%BB%B0%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BA%AE%EF%BB%91%20%EF%BB%B3%EF%BA%A4%EF%BB%A4%EF%BB%9E%20%EF%BA%A9%C6%BE%20%C7%84%EF%BA%94%20%EF%BB%97%EF%BB%AE%EF%BB%B3%EF%BA%94%20%EF%BA%87%EF%BA%AB%EF%BA%8D%20%C7%84%EF%BB%A2%20%EF%BB%B3%EF%BB%AE%EF%BA%9F%EF%BA%AA%20%EF%BB%A7%EF%BA%BA%20%EF%BA%A7%EF%BA%8E%EF%BA%B9%20%EF%BB%93%EF%BB%B2%20%EF%BA%8D%C7%84%EF%BA%92%EF%BA%8E%EF%BA%8F.%20%EF%BB%AD%EF%BA%97%EF%BA%98%EF%BA%92%EF%BB%8A%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%A4%EF%BA%AA%EF%BA%9B%EF%BB%AE%EF%BB%A5%20%EF%BB%83%EF%BA%AE%EF%BB%95%20%EF%BA%8D%C7%84%EF%BA%AE%EF%BB%AD%EF%BA%8D%EF%BB%B3%EF%BA%94%20%EF%BB%8B%EF%BB%A6%20%EF%BA%B7%EF%BB%B4%EF%BB%AE%EF%BA%A5%20%EF%BA%8D%C7%84%EF%BA%92%C7%81%EF%BA%AA%20%EF%BA%A3%EF%BA%98%EF%BB%B0%20%EF%BA%8D%EF%BA%B3%EF%BA%98%EF%BB%98%EF%BA%AE%20%EF%BA%8D%C7%84%EF%BA%A4%EF%BA%AA%EF%BB%B3%EF%BA%9A%20%EF%BB%8B%C7%81%EF%BB%B0%20%EF%BB%AD%EF%BA%9F%EF%BB%AC%EF%BB%AA%20%EF%BA%8D%C7%84%EF%BA%BC%EF%BA%A4%EF%BB%B4%EF%BA%A2.%201%20%EF%BB%AD%EF%BA%91%EF%BB%B4%20%EF%BB%A6%20%EF%BA%B7%EF%BA%AE%EF%BA%8D%EF%BA%A1%20%EF%BA%8D%C7%84%EF%BB%9C%EF%BA%98%EF%BA%8E%EF%BA%8F%20%EF%BA%83%EF%BB%A5%20%EF%BB%8B%EF%BB%A4%EF%BB%AE%EF%BB%A1%20%EF%BA%8D%C7%84%C7%81%EF%BB%94%EF%BB%86%20%EF%BB%B3%EF%BA%A0%EF%BB%AE%EF%BA%AF%20%EF%BA%83%EF%BB%A5%20%EF%BB%B3%EF%BA%A8%EF%BA%BC%EF%BA%BA%20%EF%BA%91%EF%BA%AA%C7%84%EF%BB%B4%EF%BB%9E%20%EF%BB%8B%EF%BB%98%C7%81%EF%BB%B2%20%EF%BA%83%EF%BB%AD%20%EF%BB%A7%EF%BB%98%C7%81%EF%BB%B2%20%EF%BB%A3%EF%BB%8C%EF%BA%98%EF%BA%92%EF%BA%AE.%20%EF%BB%AD%EF%BA%A7%C7%82%20%EF%BA%BB%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%98%EF%BB%AE%EF%BB%9D%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BA%97%EF%BA%AE%EF%BA%9F%EF%BB%8A%20%EF%BA%87%C7%84%EF%BB%B0%20%EF%BA%8D%EF%BB%8B%EF%BA%98%EF%BA%92%EF%BA%8E%EF%BA%AD%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%84%EF%BB%A3%EF%BB%AE%EF%BA%AD%20%EF%BA%91%EF%BB%AA%20%EF%BB%A7%EF%BB%B4%EF%BA%94%20%EF%BB%8B%EF%BB%A8%EF%BA%AA%20%EF%BA%8D%C6%BE%20%EF%BB%97%EF%BA%98%EF%BB%80%EF%BA%8E%EF%BA%80%20%EF%BB%9B%EF%BB%A4%EF%BA%8E%20%EF%BB%A3%EF%BA%AE%20.%20%EF%BB%A7%EF%BA%8E%EF%BB%97%EF%BA%B6%20%EF%BA%8D%C7%84%EF%BB%94%EF%BB%98%EF%BB%AC%EF%BA%8E%EF%BA%80%20%EF%BA%8D%C6%BE%20%EF%BB%AD%EF%BA%8D%EF%BA%8B%EF%BB%9E%20%EF%BB%A3%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%A8%EF%BB%B4%EF%BA%94%20%EF%BB%AD%EF%BA%83%EF%BA%9B%EF%BA%AE%EF%BB%AB%EF%BA%8E%20%EF%BB%93%EF%BB%B2%20%EF%BA%BB%EF%BA%A4%EF%BA%94%20%EF%BA%8D%C7%84%EF%BA%98%EF%BA%BC%EF%BA%AE%EF%BB%93%EF%BA%8E%EF%BA%95%20%EF%BA%8D%C7%84%EF%BA%B8%EF%BA%AE%EF%BB%8B%EF%BB%B4%EF%BA%94%20%EF%BB%8B%C7%81%EF%BB%B0%20%EF%BB%AD%EF%BA%9F%EF%BB%AA%20%EF%BA%8D%C7%84%EF%BA%98%EF%BB%94%EF%BA%BC%EF%BB%B4%EF%BB%9E.%20%EF%BB%AD%EF%BA%AB%EF%BB%9B%EF%BA%AE%20%EF%BA%9F%EF%BB%A4%EF%BB%AC%EF%BB%AE%EF%BA%AD%20%EF%BA%8D%C7%84%EF%BA%A4%EF%BB%A8%EF%BA%8E%EF%BA%91%C7%81%EF%BA%94%20%EF%BA%83%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BA%92%EF%BA%AE%EF%BA%93%20%EF%BB%93%EF%BB%B2%20%EF%BA%8D%C7%84%EF%BB%8C%EF%BB%98%EF%BB%AE%EF%BA%A9%20%EF%BA%91%EF%BA%8E%C7%84%EF%BB%A4%EF%BB%98%EF%BA%8E%EF%BA%BB%EF%BA%AA%20%C6%BE%20%EF%BA%91%EF%BA%8E%C6%BE%20%C7%84%EF%BB%94%EF%BA%8E%EF%BB%85%20%EF%BA%8D%C7%84%EF%BA%98%EF%BB%B2%20%EF%BA%97%EF%BA%AE%EF%BA%A9%20%EF%BB%A3%EF%BB%A6%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%98%EF%BB%8C%EF%BA%8E%EF%BB%97%EF%BA%AA%EF%BB%B3%EF%BB%A6.%20%EF%BB%AD%EF%BA%8D%EF%BA%A7%EF%BA%98%C7%81%EF%BB%92%20%EF%BA%83%EF%BA%BB%EF%BA%A4%EF%BA%8E%EF%BA%8F%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%AC%EF%BA%8D%EF%BB%AB%EF%BA%90%20%EF%BB%93%EF%BB%B2%20%EF%BA%A3%EF%BB%9C%EF%BB%A2%20%EF%BA%91%EF%BB%B4%EF%BB%8A%20%EF%BA%8D%C7%84%EF%BB%AE%EF%BB%93%EF%BA%8E%EF%BA%80%20%EF%BB%AD%EF%BB%A3%EF%BA%8E%20%EF%BA%87%EF%BA%AB%EF%BA%8D%20%EF%BB%9B%EF%BA%8E%EF%BB%A5%20%EF%BB%B3%EF%BA%AE%EF%BA%97%EF%BA%90%20%EF%BA%83%EF%BA%9B%EF%BA%AE%EF%BA%8D%20%EF%BB%93%EF%BB%B2%20%EF%BA%AB%EF%BB%A3%EF%BA%94%20%EF%BA%8D%C7%84%EF%BB%AE%EF%BA%8D%EF%BA%8B%EF%BB%92%20%C7%84%EF%BB%AA.%20%EF%BB%97%EF%BA%8E%EF%BB%9D%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%BC%EF%BB%A8%EF%BB%92%20%EF%BB%93%EF%BB%B2%20%EF%BB%9B%EF%BA%98%EF%BA%8E%EF%BA%91%EF%BB%AA%20%EF%BA%87%EF%BB%A5%20%EF%BA%8D%C7%84%EF%BB%A4%EF%BA%B4%EF%BA%84%C7%84%EF%BA%94%20%EF%BB%93%EF%BB%B4%EF%BB%AC%EF%BA%8E%20%EF%BB%A7%EF%BB%88%EF%BA%AE%20%C6%BE%20%EF%BB%A5%20%EF%BA%8D%C6%BE%20%EF%BA%A9%C7%84%EF%BA%94%20%EF%BB%8B%C7%81%EF%BB%B4"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "b249ca99-f2e3-461d-89de-aeae1751f24e",
+    "page": "1",
+    "bbox": "57.0,726.3870239257812,459.1201171875,810.947998046875"
+   },
+   "endpoint_status": 200,
+   "changed_px": 147840,
+   "region_pts": [
+    56.6,
+    726.7,
+    458.9,
+    810.2
+   ],
+   "region_area_ratio_of_page": 0.067
+  }
+ },
+ {
+  "case": "single_page_ur",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    56.98699951171875,
+    56.10300064086914,
+    483.02947998046875,
+    608.7769775390625
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      56.98699951171875,
+      56.10300064086914,
+      483.02947998046875,
+      608.7769775390625
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "9f62a89d-643a-46f0-8a5a-22eca250e2e8",
+    "page": "1",
+    "bbox": "56.98699951171875,56.10300064086914,483.02947998046875,608.7769775390625"
+   },
+   "viewer_chosen_box": [
+    56.98699951171875,
+    56.10300064086914,
+    483.02947998046875,
+    608.7769775390625
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=9f62a89d-643a-46f0-8a5a-22eca250e2e8&page=1&bbox=56.98699951171875,56.10300064086914,483.02947998046875,608.7769775390625&text=%EF%BB%A3%EF%BA%A4%EF%BB%98%EF%BB%98%EF%AF%BF%EF%BB%A6%20%EF%BB%8B%C7%81%EF%BB%AE%EF%BB%A1%20%EF%BA%8D%EF%BA%B3%C7%82%20%EF%BB%A3%EF%AF%BF%EF%AE%A7%20%EF%BB%A7%EF%AE%AF%20%EF%BB%A7%EF%AF%BF%20%EF%BA%96%20%EF%AE%90%EF%AE%AF%20%EF%BB%A3%EF%BA%B4%EF%BA%8C%C7%81%EF%AE%AF%20%EF%AD%98%EF%BA%AE%20%EF%BA%97%EF%BB%94%EF%BA%BC%EF%AF%BF%C7%81%EF%AF%BD%20%EF%BA%91%EF%BA%A4%EF%BA%9A%20%EF%AE%90%EF%AF%BD%20%EF%AE%A8%EF%AE%AF%20%EF%BA%8D%EF%BB%AD%EF%BA%AD%20%EF%BA%8D%EF%AD%98%EF%BB%A8%EF%AF%BD%20%EF%BA%81%EF%BA%AD%EF%BA%8D%EF%BA%80%20%EF%AD%98%EF%AF%BF%EF%BA%B6%20%EF%AE%90%EF%AF%BF%EF%AE%9F%20%DB%94%20%EF%BA%8D%EF%AE%90%EF%BA%8E%EF%BA%91%EF%BA%AE%20%EF%BB%8B%C7%81%EF%BB%A4%EF%BA%8E%EF%BA%80%20%EF%AE%90%EF%BA%8E%20%EF%BB%A3%EF%BA%A8%EF%BA%98%EF%BA%8E%EF%BA%AD%20%EF%AF%BE%EF%AE%A7%20%EF%AE%A8%EF%AE%AF%20%EF%AE%90%EF%AE%A7%20%EF%BB%A3%EF%BB%8C%EF%BA%8E%EF%BB%A3%C7%82%20%EF%BA%95%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BB%A3%EF%BB%98%EF%BA%BC%EF%BA%AA%20%EF%AE%A8%EF%AF%BD%20%EF%BB%A7%EF%BB%88%EF%BA%AE%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BA%AD%EF%AE%90%EF%AE%AD%EF%BA%8E%20%EF%BA%9F%EF%BA%8E%EF%BA%97%EF%BA%8E%20%EF%AE%A8%EF%AE%AF%20%EF%AE%A8%EF%BB%A4%EF%AF%BF%EF%BA%B8%EF%AE%A7%20%DB%94%20%EF%AE%90%EF%BA%98%EF%BA%8E%EF%BA%8F%20%EF%BB%AD%20%EF%BA%B3%EF%BB%A8%EF%BA%96%20%EF%BA%B3%EF%AE%AF%20%EF%BA%A9%C6%BE%20%EF%BA%8B%EF%BB%9E%20%C7%84%EF%AF%BF%EF%BA%98%EF%AE%AF%20%EF%AE%A8%EF%BB%AE%EF%BA%8B%EF%AE%AF%20%EF%BB%A3%EF%BB%94%EF%BA%98%EF%AF%BF%EF%BA%8E%EF%BB%A5%20%EF%BA%8D%EF%BB%A3%EF%BA%96%20%EF%BB%A7%EF%AE%AF%20%EF%BB%93%EF%BA%98%EF%BA%8E%EF%BB%AD%EF%AF%BC%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BA%8D%EF%BA%B3%EF%AF%BD%20%EF%BA%8D%EF%BA%BB%EF%BB%AE%EF%BB%9D%20%EF%AE%90%EF%BB%AE%20%EF%BB%A3%C7%81%EF%BA%A4%EF%BB%AE%EF%BB%85%20%EF%BA%AD%EF%AE%90%EF%AE%AD%EF%BA%8E%20%DB%94%20%EF%BB%8B%EF%BA%AE%EF%BB%91%20%EF%AE%90%EF%AF%BD%20%EF%BA%A3%EF%BA%A0%EF%AF%BF%EF%BA%96%20%EF%AE%90%EF%AE%AF%20%EF%BA%91%EF%BA%8E%EF%BA%8F%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BB%A3%EF%BA%98%EF%BA%8E%EF%BA%A7%EF%BA%AE%EF%AF%BE%EF%BB%A6%20%EF%AE%90%EF%AF%BD%20%EF%BA%97%EF%BA%A4%EF%BB%98%EF%AF%BF%EF%BB%98%EF%BA%8E%EF%BA%95%20%EF%BB%97%EF%BA%8E%EF%BA%91%EF%BB%9E%20%EF%BB%8F%EF%BB%AE%EF%BA%AD%20%EF%AE%A8%EF%AF%BF%EF%AE%9F%20%EF%BA%9F%EF%BB%A6%20%EF%AE%90%EF%BB%AE%20%EF%BB%A7%EF%BB%88%EF%BA%AE%EF%BA%8D%EF%BB%A7%EF%BA%AA%EF%BA%8D%EF%BA%AF%20%EF%BB%A7%EF%AE%A7%20%EF%AE%90%EF%BA%AE%EF%AF%BE%EF%AE%9F%20%DB%94%20%EF%BB%A3%EF%BA%A4%EF%BB%98%EF%BB%98%EF%AF%BF%EF%BB%A6%20%EF%BB%8B%C7%81%EF%BB%AE%EF%BB%A1%20%EF%BA%8D%EF%BA%B3%C7%82%20%EF%BB%A3%EF%AF%BF%EF%AE%A7%20%EF%BB%A7%EF%AE%AF%20%EF%BB%A7%EF%AF%BF%20%EF%BA%96%20%EF%AE%90%EF%AE%AF%20%EF%BB%A3%EF%BA%B4%EF%BA%8C%C7%81%EF%AE%AF%20%EF%AD%98%EF%BA%AE%20%EF%BA%97%EF%BB%94%EF%BA%BC%EF%AF%BF%C7%81%EF%AF%BD%20%EF%BA%91%EF%BA%A4%EF%BA%9A%20%EF%AE%90%EF%AF%BD%20%EF%AE%A8%EF%AE%AF%20%EF%BA%8D%EF%BB%AD%EF%BA%AD%20%EF%BA%8D%EF%AD%98%EF%BB%A8%EF%AF%BD%20%EF%BA%81%EF%BA%AD%EF%BA%8D%EF%BA%80%20%EF%AD%98%EF%AF%BF%EF%BA%B6%20%EF%AE%90%EF%AF%BF%EF%AE%9F%20%DB%94%20%EF%BA%8D%EF%AE%90%EF%BA%8E%EF%BA%91%EF%BA%AE%20%EF%BB%8B%C7%81%EF%BB%A4%EF%BA%8E%EF%BA%80%20%EF%AE%90%EF%BA%8E%20%EF%BB%A3%EF%BA%A8%EF%BA%98%EF%BA%8E%EF%BA%AD%20%EF%AF%BE%EF%AE%A7%20%EF%AE%A8%EF%AE%AF%20%EF%AE%90%EF%AE%A7%20%EF%BB%A3%EF%BB%8C%EF%BA%8E%EF%BB%A3%C7%82%20%EF%BA%95%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BB%A3%EF%BB%98%EF%BA%BC%EF%BA%AA%20%EF%AE%A8%EF%AF%BD%20%EF%BB%A7%EF%BB%88%EF%BA%AE%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BA%AD%EF%AE%90%EF%AE%AD%EF%BA%8E%20%EF%BA%9F%EF%BA%8E%EF%BA%97%EF%BA%8E%20%EF%AE%A8%EF%AE%AF%20%EF%AE%A8%EF%BB%A4%EF%AF%BF%EF%BA%B8%EF%AE%A7%20%DB%94%20%EF%AE%90%EF%BA%98%EF%BA%8E%EF%BA%8F%20%EF%BB%AD%20%EF%BA%B3%EF%BB%A8%EF%BA%96%20%EF%BA%B3%EF%AE%AF%20%EF%BA%A9%C6%BE%20%EF%BA%8B%EF%BB%9E%20%C7%84%EF%AF%BF%EF%BA%98%EF%AE%AF%20%EF%AE%A8%EF%BB%AE%EF%BA%8B%EF%AE%AF%20%EF%BB%A3%EF%BB%94%EF%BA%98%EF%AF%BF%EF%BA%8E%EF%BB%A5%20%EF%BA%8D%EF%BB%A3%EF%BA%96%20%EF%BB%A7%EF%AE%AF%20%EF%BB%93%EF%BA%98%EF%BA%8E%EF%BB%AD%EF%AF%BC%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BA%8D%EF%BA%B3%EF%AF%BD%20%EF%BA%8D%EF%BA%BB%EF%BB%AE%EF%BB%9D%20%EF%AE%90%EF%BB%AE%20%EF%BB%A3%C7%81%EF%BA%A4%EF%BB%AE%EF%BB%85%20%EF%BA%AD%EF%AE%90%EF%AE%AD%EF%BA%8E%20%DB%94%20%EF%BB%8B%EF%BA%AE%EF%BB%91%20%EF%AE%90%EF%AF%BD%20%EF%BA%A3%EF%BA%A0%EF%AF%BF%EF%BA%96%20%EF%AE%90%EF%AE%AF%20%EF%BA%91%EF%BA%8E%EF%BA%8F%20%EF%BB%A3%EF%AF%BF%EF%AE%9F%20%EF%BB%A3%EF%BA%98%EF%BA%8E%EF%BA%A7%EF%BA%AE%EF%AF%BE%EF%BB%A6%20%EF%AE%90%EF%AF%BD%20%EF%BA%97%EF%BA%A4%EF%BB%98%EF%AF%BF%EF%BB%98%EF%BA%8E%EF%BA%95%20"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "9f62a89d-643a-46f0-8a5a-22eca250e2e8",
+    "page": "1",
+    "bbox": "56.98699951171875,56.10300064086914,483.02947998046875,608.7769775390625"
+   },
+   "endpoint_status": 200,
+   "changed_px": 1027044,
+   "region_pts": [
+    56.6,
+    55.7,
+    482.9,
+    608.6
+   ],
+   "region_area_ratio_of_page": 0.47
+  }
+ },
+ {
+  "case": "edge_offset_frontmatter",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    57.0,
+    276.44061279296875,
+    505.99200439453125,
+    361.95465087890625
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      57.0,
+      276.44061279296875,
+      505.99200439453125,
+      361.95465087890625
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 2,
+     "bbox": [
+      57.0,
+      54.387001037597656,
+      492.083984375,
+      810.947998046875
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 3,
+     "bbox": [
+      57.0,
+      54.387001037597656,
+      492.083984375,
+      385.4840087890625
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "a9ced77a-7ee6-4d9e-b566-818a09d8438b",
+    "page": "1",
+    "bbox": "57.0,276.44061279296875,505.99200439453125,361.95465087890625"
+   },
+   "viewer_chosen_box": [
+    57.0,
+    276.44061279296875,
+    505.99200439453125,
+    361.95465087890625
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=a9ced77a-7ee6-4d9e-b566-818a09d8438b&page=1&bbox=57.0,276.44061279296875,505.99200439453125,361.95465087890625&text=THE%20COLLECTED%20OPINIONS%20OF%20THE%20EARLY%20JURISTS%20Volume%20One%20%E2%80%94%20A%20Critical%20Edition%20With%20Commentary%20And%20Notes%20The%20early%20jurists%20debated%20whether%20intention%20transforms%20a%20lawful%20act%20into%20an%20unlawful%20one%2C%20and%20their%20conclusions%20shaped%20centuries%20of%20legal%20thought.%20Ibn%20Rushd%20argued%20that%20custom%20carries%20weight%20equal%20to%20written%20statutes%20in%20matters%20of%20commerce%2C%20while%20stricter%20voices%20demanded%20explicit%20textual%20proof.%20A%20merchant%20in%20old%20Damascus%20kept%20three%20ledgers%3A%20one%20for%20debts%2C%20one%20for%20gifts%2C%20and%20one%20for%20the%20charity%20he%20distributed%20quietly%20before%20dawn%20each%20Friday.%20Scholars%20disagree%20about%20the%20mystery%20of%20the%20ancient%20ma"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "a9ced77a-7ee6-4d9e-b566-818a09d8438b",
+    "page": "1",
+    "bbox": "57.0,276.44061279296875,505.99200439453125,361.95465087890625"
+   },
+   "endpoint_status": 200,
+   "changed_px": 166608,
+   "region_pts": [
+    56.6,
+    276.5,
+    505.0,
+    361.0
+   ],
+   "region_area_ratio_of_page": 0.076
+  }
+ },
+ {
+  "case": "scanned_en_text_locate",
+  "harness_error": "FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)"
+ },
+ {
+  "case": "synthetic_gemini_geometry",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    0.0,
+    0.0,
+    1340.0,
+    18.0
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      0.0,
+      0.0,
+      1340.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": false
+    },
+    {
+     "page": 2,
+     "bbox": [
+      0.0,
+      0.0,
+      1390.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": false
+    },
+    {
+     "page": 3,
+     "bbox": [
+      0.0,
+      0.0,
+      1340.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": false
+    },
+    {
+     "page": 4,
+     "bbox": [
+      0.0,
+      0.0,
+      1390.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": false
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "36a4cedc-0ed3-4166-a251-92eae0a83ae1",
+    "page": "1",
+    "bbox": "0.0,0.0,1340.0,18.0"
+   },
+   "viewer_chosen_box": [
+    0.0,
+    0.0,
+    1340.0,
+    18.0
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=36a4cedc-0ed3-4166-a251-92eae0a83ae1&page=1&bbox=0.0,0.0,1340.0,18.0&text=%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86%20%D9%81%D9%8A%20%D8%AC%D9%85%D9%8A%D8%B9%20%D8%A7%D9%84%D8%A3%D8%A8%D9%88%D8%A7%D8%A8%20%D8%A7%D9%84%D9%85%D8%B0%D9%83%D9%88%D8%B1%D8%A9%20%D9%83%D8%AA%D8%A7%D8%A8%D8%A9.%20%D9%88%D8%B0%D9%87%D8%A8%20%D8%A3%D8%B5%D8%AD%D8%A7%D8%A8%D9%86%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A3%D9%86%20%D8%A7%D9%84%D8%B9%D8%A8%D8%B1%D8%A9%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%A8%D9%8A%D9%88%D8%B9%20%D8%A8%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%86%D9%8A%20%D9%84%D8%A7%20%D8%A8%D8%A7%D9%84%D8%A3%D9%84%D9%81%D8%A7%D8%B8%20%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AF%D8%A9%20%D9%84%D8%A3%D9%86%20%D8%A7%D9%84%D9%84%D9%81%D8%B8%20%D9%84%D8%A7%20%D9%8A%D9%82%D9%88%D9%85%20%D9%85%D9%82%D8%A7%D9%85%20%D8%A7%D9%84%D8%A5%D8%B1%D8%A7%D8%AF%D8%A9%20%D8%A5%D8%B0%D8%A7%20%D8%AB%D8%A8%D8%AA%20%D8%AE%D9%84%D8%A7%D9%81%D9%87%20%D8%A8%D8%A7%D9%84%D9%82%D8%B1%D8%A7%D8%A6%D9%86%20%D8%A7%D9%84%D9%85%D8%B9%D8%AA%D8%A8%D8%B1%D8%A9%20%D8%B9%D9%86%D8%AF%20%D8%A7%D9%84%D9%85%D8%AD%D9%82%D9%82%D9%8A%D9%86.%20%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86%20%D9%81%D9%8A%20%D8%AC%D9%85%D9%8A%D8%B9%20%D8%A7%D9%84%D8%A3%D8%A8%D9%88%D8%A7%D8%A8%20%D8%A7%D9%84%D9%85%D8%B0%D9%83%D9%88%D8%B1%D8%A9%20%D9%83%D8%AA%D8%A7%D8%A8%D8%A9.%20%D9%88%D8%B0%D9%87%D8%A8%20%D8%A3%D8%B5%D8%AD%D8%A7%D8%A8%D9%86%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A3%D9%86%20%D8%A7%D9%84%D8%B9%D8%A8%D8%B1%D8%A9%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%A8%D9%8A%D9%88%D8%B9%20%D8%A8%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D9%86%D9%8A%20%D9%84%D8%A7%20%D8%A8%D8%A7%D9%84%D8%A3%D9%84%D9%81%D8%A7%D8%B8%20%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AF%D8%A9%20%D9%84%D8%A3%D9%86%20%D8%A7%D9%84%D9%84%D9%81%D8%B8%20%D9%84%D8%A7%20%D9%8A%D9%82%D9%88%D9%85%20%D9%85%D9%82%D8%A7%D9%85%20%D8%A7%D9%84%D8%A5%D8%B1%D8%A7%D8%AF%D8%A9%20%D8%A5%D8%B0%D8%A7%20%D8%AB%D8%A8%D8%AA%20%D8%AE%D9%84%D8%A7%D9%81%D9%87%20%D8%A8%D8%A7%D9%84%D9%82%D8%B1%D8%A7%D8%A6%D9%86%20%D8%A7%D9%84%D9%85%D8%B9%D8%AA%D8%A8%D8%B1%D8%A9%20%D8%B9%D9%86%D8%AF%20%D8%A7%D9%84%D9%85%D8%AD%D9%82%D9%82%D9%8A%D9%86."
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "36a4cedc-0ed3-4166-a251-92eae0a83ae1",
+    "page": "1",
+    "bbox": "0.0,0.0,1340.0,18.0"
+   },
+   "endpoint_status": 200,
+   "changed_px": 0,
+   "region_pts": null
+  }
+ },
+ {
+  "case": "synthetic_gemini_shortlines",
+  "stage_d_source": {
+   "bbox_after_gating": [
+    0.0,
+    0.0,
+    210.0,
+    18.0
+   ],
+   "top_bbox_plausible": true,
+   "per_page_plausibility": [
+    {
+     "page": 1,
+     "bbox": [
+      0.0,
+      0.0,
+      210.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 2,
+     "bbox": [
+      0.0,
+      0.0,
+      290.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 3,
+     "bbox": [
+      0.0,
+      0.0,
+      280.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 4,
+     "bbox": [
+      0.0,
+      0.0,
+      250.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 5,
+     "bbox": [
+      0.0,
+      0.0,
+      210.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 6,
+     "bbox": [
+      0.0,
+      0.0,
+      290.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 7,
+     "bbox": [
+      0.0,
+      0.0,
+      280.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    },
+    {
+     "page": 8,
+     "bbox": [
+      0.0,
+      0.0,
+      250.0,
+      18.0
+     ],
+     "plausible": true,
+     "inside_page_rect": true
+    }
+   ],
+   "page_rect": [
+    0.0,
+    0.0,
+    595.0,
+    842.0
+   ],
+   "viewer_query_params": {
+    "book_id": "89a9f0c2-e584-412b-86b3-4c39a15534d5",
+    "page": "1",
+    "bbox": "0.0,0.0,210.0,18.0"
+   },
+   "viewer_chosen_box": [
+    0.0,
+    0.0,
+    210.0,
+    18.0
+   ],
+   "highlight_url_from_backend": "/highlight?book_id=89a9f0c2-e584-412b-86b3-4c39a15534d5&page=1&bbox=0.0,0.0,210.0,18.0&text=%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86%20%D9%82%D8%A7%D9%84%20%D8%A7%D9%84%D9%85%D8%B5%D9%86%D9%81%20%D9%81%D9%8A%20%D9%87%D8%B0%D8%A7%20%D8%A7%D9%84%D8%A8%D8%A7%D8%A8%20%D8%A5%D9%86%20%D8%A7%D9%84%D9%86%D9%8A%D8%A9%20%D9%85%D8%AD%D9%84%20%D8%A7%D9%84%D9%82%D9%88%D9%84%20%D9%81%D9%8A%20%D8%B5%D8%AD%D8%A9%20%D8%A7%D9%84%D8%B9%D9%82%D9%88%D8%AF%20%D9%88%D8%A7%D9%86%D8%B9%D9%82%D8%A7%D8%AF%D9%87%D8%A7%20%D8%B9%D9%86%D8%AF%20%D9%85%D9%86%20%D9%8A%D8%B9%D8%AA%D9%85%D8%AF%20%D8%A7%D9%84%D9%85%D9%82%D8%A7%D8%B5%D8%AF%20%D9%88%D9%8A%D8%AC%D8%B9%D9%84%20%D8%A7%D9%84%D8%B8%D8%A7%D9%87%D8%B1%20%D9%85%D8%B1%D8%AC%D8%B9%D8%A7%20%D8%A5%D9%84%D9%89%20%D8%A8%D8%A7%D8%B7%D9%86"
+  },
+  "stage_e_render": {
+   "request": {
+    "book_id": "89a9f0c2-e584-412b-86b3-4c39a15534d5",
+    "page": "1",
+    "bbox": "0.0,0.0,210.0,18.0"
+   },
+   "endpoint_status": 200,
+   "changed_px": 16644,
+   "region_pts": [
+    0.0,
+    0.0,
+    209.3,
+    17.3
+   ],
+   "region_area_ratio_of_page": 0.007
+  }
+ }
+]

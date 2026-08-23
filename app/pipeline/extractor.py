@@ -229,7 +229,8 @@ def _clean_gemini_text(text: str) -> str:
 
 def _words_from_fitz(page: fitz.Page) -> list[dict]:
     raw = page.get_text("words")
-    return [{"text": w[4], "bbox": list(w[:4])} for w in raw]
+    # geom="real": these are true PDF-point rectangles measured by MuPDF.
+    return [{"text": w[4], "bbox": list(w[:4]), "geom": "real"} for w in raw]
 
 
 def _words_from_tesseract(page: fitz.Page) -> list[dict]:
@@ -263,7 +264,8 @@ def _words_from_tesseract(page: fitz.Page) -> list[dict]:
                 x = int(row.get("left", "0")) * scale
                 y = int(row.get("top", "0")) * scale
                 line_key = f"{row.get('block_num', '0')}-{row.get('par_num', '0')}-{row.get('line_num', '0')}"
-                words.append({"text": text, "bbox": [x, y, x + w * scale, y + h * scale], "line": line_key})
+                words.append({"text": text, "bbox": [x, y, x + w * scale, y + h * scale],
+                              "line": line_key, "geom": "real"})
         return words
     finally:
         try:
@@ -306,7 +308,12 @@ def _text_to_words(text: str, page_num: int, printed_page_num: int | None = None
                 "text": token,
                 "page_num": page_num,
                 "printed_page_num": printed_page_num,
+                # geom="synthetic": this box is a char-width heuristic with no
+                # relation to the real page layout (x can exceed the page width
+                # many times over). The chunker uses it only for line/paragraph
+                # grouping and MUST NOT emit it as highlightable geometry.
                 "bbox": [x, y, x + tw, y + _LINE_HEIGHT],
+                "geom": "synthetic",
             }
             if para_start:
                 entry["para_start"] = True
@@ -316,7 +323,8 @@ def _text_to_words(text: str, page_num: int, printed_page_num: int | None = None
         words.extend(line_words)
         y += _LINE_HEIGHT
     if not words:
-        return [{"text": "", "page_num": page_num, "printed_page_num": printed_page_num, "bbox": None}]
+        return [{"text": "", "page_num": page_num, "printed_page_num": printed_page_num,
+                 "bbox": None, "geom": "synthetic"}]
     return words
 
 

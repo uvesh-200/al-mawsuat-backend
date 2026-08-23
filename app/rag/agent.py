@@ -339,8 +339,11 @@ def _annotate_pages(text: str, page_offsets: list[dict] | None) -> str:
     boundaries actually fall and let it cite the page a sentence is on.
     Truncation may have cut the tail, so segments are clamped to the visible
     text; if only one page remains visible there is nothing to annotate.
-    The marker shows the printed footer page number when known
-    (``printed_page_num``), falling back to the physical page.
+
+    Markers ALWAYS carry the PHYSICAL page index — the same space the viewer,
+    the /highlight endpoint and SourceItem.page use. Mixing printed footer
+    numbers into this space (the old behaviour) produced citations that could
+    not be reconciled with the page actually rendered on screen.
     """
     if not page_offsets or len(page_offsets) <= 1:
         return text
@@ -349,8 +352,8 @@ def _annotate_pages(text: str, page_offsets: list[dict] | None) -> str:
     if len(visible) <= 1:
         return text
     return " ".join(
-        f"\u27e8Page {po.get('printed_page_num') or po['page']}\u27e9 "
-        + text[po["start_char"] : min(po["end_char"], n) + 1]
+        f"\u27e8Page {po['page']}\u27e9 "
+        + text[po["start_char"] : min(po["end_char"], n)]
         for po in visible
     )
 
@@ -358,21 +361,23 @@ def _annotate_pages(text: str, page_offsets: list[dict] | None) -> str:
 def _format_passages(passages: list[dict]) -> str:
     """Format passages with stable [P1]…[PN] tags that the LLM must cite.
 
-    Page numbers in both the ⟨Page N⟩ markers and the Source line follow the
-    printed footer numbering (printed_page_start/end, per-offset
-    printed_page_num) when the book has one; physical pages are the fallback.
-    The Source line carries ONLY "<book>, Page X-Y". ``chapter`` and
-    ``author`` metadata are deliberately excluded: for OCR'd Arabic books the
-    chapter field is a garbage blob of the running header/footnote text
-    ("AES AME REY", "A) LW", …) that leaked onto the citation line.
+    Page numbers in both the ⟨Page N⟩ markers and the Source line are PHYSICAL
+    pages — the same space the viewer, /highlight and SourceItem.page use.
+    (Printed footer numbers remain on the payload for data completeness but
+    are never mixed into citation text: two page spaces produced citations
+    that could not be reconciled with the rendered page.) The Source line
+    carries ONLY "<book>, Page X-Y". ``chapter`` and ``author`` metadata are
+    deliberately excluded: for OCR'd Arabic books the chapter field is a
+    garbage blob of the running header/footnote text ("AES AME REY", "A) LW",
+    …) that leaked onto the citation line.
     """
     lines: list[str] = []
     for i, p in enumerate(passages, 1):
         text = _truncate_text(p.get("text", ""))
         text = _annotate_pages(text, p.get("page_offsets") or [])
         book = p.get("book_name", "")
-        page = p.get("printed_page_start") if p.get("printed_page_start") is not None else p.get("page_start", "")
-        page_end = p.get("printed_page_end") if p.get("printed_page_end") is not None else p.get("page_end", "")
+        page = p.get("page_start", "")
+        page_end = p.get("page_end", "")
         source = book
         if page:
             if page_end and page_end != page:
@@ -621,11 +626,14 @@ def _claim_page(passages: list[dict], idx: int, llm_page: str | None, claim_toke
                     idx + 1, llm_page, best_page, " ".join(claim_tokens[:12]),
                 )
             return best_page
+    # Fallbacks operate purely in PHYSICAL page space (the space the viewer
+    # and /highlight endpoint use): preferring printed footer numbers here
+    # returned pages that pointed at the wrong rendered page.
     offsets = passages[idx].get("page_offsets") or []
     pages = [
-        po.get("printed_page_num") if po.get("printed_page_num") is not None else po.get("page")
+        po.get("page")
         for po in offsets
-        if isinstance(po, dict) and (po.get("page") is not None or po.get("printed_page_num") is not None)
+        if isinstance(po, dict) and po.get("page") is not None
     ]
     if llm_page and pages:
         try:
@@ -634,9 +642,6 @@ def _claim_page(passages: list[dict], idx: int, llm_page: str | None, claim_toke
             cited = None
         if cited is not None and cited in pages:
             return cited
-    printed = passages[idx].get("printed_page_start")
-    if printed is not None:
-        return printed
     return passages[idx].get("page_start")
 
 

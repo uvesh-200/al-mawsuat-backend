@@ -1,0 +1,38 @@
+{
+ "text": "Manuscript copyists introduced errors of omission more often than errors of invention, since fatigue erased whole clauses but rarely added them. Students memorised the core text ﬁrst and only then approached commentary, for commentary without foundation drifts like a boat without an anchor. The marketplace inspector recorded prices twice daily, once after sunrise and once before sunset, so disputes could be checked against both entries. 4",
+ "page_start": 4,
+ "page_end": 4,
+ "physical_page_start": 4,
+ "physical_page_end": 4,
+ "printed_page_start": 4,
+ "printed_page_end": 4,
+ "bbox": [
+  57.0,
+  630.3870239257812,
+  509.5690612792969,
+  810.947998046875
+ ],
+ "page_bboxes": [
+  {
+   "page": 4,
+   "bbox": [
+    57.0,
+    630.3870239257812,
+    509.5690612792969,
+    810.947998046875
+   ]
+  }
+ ],
+ "page_offsets": [
+  {
+   "page": 4,
+   "start_char": 0,
+   "end_char": 441,
+   "printed_page_num": 4
+  }
+ ],
+ "chapter": null,
+ "tenant_id": "default",
+ "token_count": 66,
+ "_pdf_name": "en_book.pdf"
+}

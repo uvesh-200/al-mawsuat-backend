@@ -462,11 +462,17 @@ def _compute_page_bboxes(words: list[dict]) -> list[dict]:
     0..page_height). A single min/max union across pages produces a rectangle
     that exists on NO page (e.g. x1 or y1 in the tens of thousands), so the
     chunk stores one box per page it spans instead.
+
+    Only words with REAL geometry (fitz text layer or Tesseract, tagged
+    ``geom="real"`` by the extractor) contribute boxes. The Gemini OCR path
+    emits synthetic char-width-heuristic boxes purely to support line/paragraph
+    grouping; unioning those per page would store fictional rectangles that
+    render as misplaced bands or near-full-page highlights.
     """
     per_page: dict[int, list[list[float]]] = {}
     for w in words:
         bbox = w.get("bbox")
-        if bbox is None:
+        if bbox is None or w.get("geom", "real") != "real":
             continue
         per_page.setdefault(w["page_num"], []).append(bbox)
 
@@ -503,28 +509,30 @@ def _compute_bbox(words: list[dict], page_bboxes: list[dict]) -> list[float] | N
 def _compute_page_offsets(words: list[dict]) -> list[dict]:
     """Character ranges of the joined chunk text per page.
 
-    Each entry maps a page to the [start_char, end_char) slice of the chunk's
-    ``text`` that came from that page, plus the printed footer page number of
-    that page (None when unknown). This survives into the stored payload so
-    citation resolution can point at the actual page a cited sentence falls on
-    instead of always using page_start, and can display printed numbers.
+    Each entry maps a page to the half-open ``text[start_char:end_char]``
+    slice of the chunk's joined text that came from that page (``end_char`` is
+    EXCLUSIVE, matching Python/JavaScript slice semantics), plus the printed
+    footer page number of that page (None when unknown). This survives into
+    the stored payload so citation resolution can point at the actual page a
+    cited sentence falls on instead of always using page_start.
     """
     offsets: list[dict] = []
     cur_page: Optional[int] = None
     start = 0
     pos = 0
-    for i, w in enumerate(words):
+    for w in words:
         page = w["page_num"]
         if page != cur_page:
             if cur_page is not None:
-                # end_char is inclusive: the char before the next word's start
-                offsets.append({"page": cur_page, "start_char": start, "end_char": pos - 1})
+                # end_char exclusive: first char index of the next page's slice
+                offsets.append({"page": cur_page, "start_char": start, "end_char": pos})
             cur_page = page
             start = pos
-        pos += len(w["text"]) + 1
+        pos += len(w["text"]) + 1  # +1 accounts for the join space
     if cur_page is not None:
-        # final segment ends at the last real char of the joined text
-        offsets.append({"page": cur_page, "start_char": start, "end_char": pos - 2})
+        # final segment ends at the true end of the joined text (pos-1 because
+        # the trailing word also counted its join space)
+        offsets.append({"page": cur_page, "start_char": start, "end_char": pos - 1})
     return offsets
 
 
