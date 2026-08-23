@@ -109,3 +109,18 @@ Three latent split bugs found only by container verification:
 1. workers.celery_app still imported dead repo-root workers.processor path
 2. qa/graph.py never compiled its StateGraph (rag_graph missing)
 3. agent facade missing LLM_ERROR_FALLBACK / NO_RESULT_REFUSALS / rag_graph re-exports
+
+### E2E verification (283f8e3)
+
+Ran tests/e2e against the live refactored stack. Found and fixed four more
+split-induced defects that only manifest at runtime:
+- retrieval.py missing translate_to_english import (every /ask 500'd)
+- graph.py missing _iter_tag_indices + CONSISTENCY_CHECK_PROMPT imports
+- ask_service.py: page used before assignment on bbox-gate warning paths
+  (latent since Phase 0; fired on real synthetic geometry)
+Plus words.py/extractor.py/paragraphs.py import gaps found by the new
+scripts/static_import_check.py (AST undefined-name sweep, now clean).
+
+Result: 27 passed / 3 skipped (fixture book 394ed100 not present in this
+environment's volumes; highlight + mahbubi tests now adapt or skip with a
+clear reason). Unit suite stays at 146 green.
