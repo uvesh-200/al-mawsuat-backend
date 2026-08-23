@@ -11,7 +11,7 @@ from sqlalchemy import delete as sa_delete, select, update
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal
 from app.models.tables import Book, ProcessingJob
-from workers.processor import process_book_async
+from app.workers.processor import process_book_async
 
 logger = logging.getLogger(__name__)
 

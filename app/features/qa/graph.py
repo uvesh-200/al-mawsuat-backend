@@ -280,3 +280,5 @@ graph.add_conditional_edges(
 )
 graph.add_edge("generate", END)
 graph.add_edge("no_result_handler", END)
+
+rag_graph = graph.compile()
