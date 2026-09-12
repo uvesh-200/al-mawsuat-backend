@@ -48,7 +48,7 @@ async def sse_events(
     user: Annotated[User, Depends(sse_user)] = None,
 ) -> StreamingResponse:
     return StreamingResponse(
-        event_generator(),
+        event_generator(user.tenant_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

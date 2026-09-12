@@ -156,8 +156,11 @@ async def rerank(
     if not results:
         return []
 
-    vector_results = [r for r in results if r.get("score", 0) != 0.5]
-    keyword_results = [r for r in results if r.get("score", 0) == 0.5]
+    # Results are explicitly tagged "vector" or "keyword" by the retriever
+    # (previously distinguished by the fragile score == 0.5 sentinel that
+    # keyword_search hardcoded).
+    vector_results = [r for r in results if r.get("source") == "vector"]
+    keyword_results = [r for r in results if r.get("source") == "keyword"]
 
     rrf_scores: dict[str, float] = {}
     for i, r in enumerate(vector_results):

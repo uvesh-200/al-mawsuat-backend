@@ -26,19 +26,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ask", tags=["ask"])
 
-NO_RESULT_PATTERNS = (
-    "no relevant information found",
-    "no relevant information was found",
-    "after multiple attempts, no relevant information",
-    "لا توجد معلومات ذات صلة",
-    "لا توجد معلومات",
-    "لا معلومات",
-    "لم يتم العثور على معلومات",
-    "کوئی متعلقہ معلومات نہیں",
-)
-
-_PLACEHOLDER_RE = re.compile(r"\[(?:Book Name|Page X|Chapter Y)[^\]]*\]")
-
 
 from app.features.qa.ask_service import (
     AskRequest,
@@ -59,7 +46,7 @@ async def ask_json(
     body: AskRequest,
     user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ) -> AnswerResponse:
-    tenant_id = user.tenant_id if user else "default"
+    tenant_id = user.tenant_id if user else settings.DEFAULT_TENANT_ID
     question = body.question
     book_id = body.book_id
     start = time.monotonic()
@@ -137,7 +124,7 @@ async def ask_stream(
     book_id: str | None = None,
     user: Annotated[User | None, Depends(get_optional_current_user)] = None,
 ):
-    tenant_id = user.tenant_id if user else "default"
+    tenant_id = user.tenant_id if user else settings.DEFAULT_TENANT_ID
     start = time.monotonic()
 
     if len(question) > 4096:

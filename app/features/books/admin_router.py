@@ -185,8 +185,9 @@ async def delete_book(
 
     job_result = await session.execute(
         select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))
+        .order_by(ProcessingJob.created_at.desc()).limit(1)
     )
-    job = job_result.scalar_one_or_none()
+    job = job_result.scalars().first()
     if job is not None and job.task_id:
         try:
             from app.workers.celery_app import celery_app
@@ -238,8 +239,9 @@ async def reprocess_book(
 
     old_job_result = await session.execute(
         select(ProcessingJob).where(ProcessingJob.book_id == uuid.UUID(book_id))
+        .order_by(ProcessingJob.created_at.desc()).limit(1)
     )
-    old_job = old_job_result.scalar_one_or_none()
+    old_job = old_job_result.scalars().first()
     if old_job is not None and old_job.task_id:
         try:
             from app.workers.celery_app import celery_app

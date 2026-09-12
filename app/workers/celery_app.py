@@ -60,7 +60,7 @@ async def _run_with_cleanup(book_id: str, minio_path: str, tenant_id: str, task_
         await process_book_async(book_id, minio_path, tenant_id)
     except Exception as exc:
         try:
-            await _mark_failed(book_id, exc)
+            await _mark_failed(book_id, exc, tenant_id)
         except Exception as inner:
             logger.error("Failed to mark job %s as failed: %s", book_id, inner)
         raise
@@ -74,7 +74,7 @@ async def _run_with_cleanup(book_id: str, minio_path: str, tenant_id: str, task_
             logger.warning("Failed to close redis client: %s", inner)
 
 
-async def _mark_failed(book_id: str, exc: Exception) -> None:
+async def _mark_failed(book_id: str, exc: Exception, tenant_id: str) -> None:
     from app.core.events import publish_book_update
     max_attempts = 3
     for attempt in range(max_attempts):
@@ -107,7 +107,7 @@ async def _mark_failed(book_id: str, exc: Exception) -> None:
             else:
                 logger.error("Failed to mark job %s as failed: %s", book_id, inner)
     try:
-        await publish_book_update({"book_id": book_id, "status": "failed"})
+        await publish_book_update({"book_id": book_id, "status": "failed"}, tenant_id)
     except Exception:
         pass
 
@@ -216,7 +216,7 @@ def reap_stale_jobs() -> None:
                         update(ProcessingJob)
                         .where(ProcessingJob.id == job.id)
                         .values(status="queued", progress_pct=0, current_step="re-queued",
-                                checkpoint=None, error_msg=None, retry_count=0)
+                                error_msg=None, retry_count=0)
                     )
                     await session.commit()
                     process_book.delay(

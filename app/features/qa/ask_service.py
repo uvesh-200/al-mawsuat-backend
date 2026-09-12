@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -23,8 +23,6 @@ from app.features.qa.cache import get_cached_answer, set_cached_answer
 import logging
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/ask", tags=["ask"])
 
 NO_RESULT_PATTERNS = (
     "no relevant information found",

@@ -101,16 +101,16 @@ class TestRerankThreshold:
         """An unrelated question must be dropped by the relevance floor, so
         the quality gate refuses instead of letting the LLM invent an answer."""
         res = [
-            {"text": BRICK_CHUNK, "score": 0.8},
-            {"text": ASH_SHIFA_CHUNK, "score": 0.6},
+            {"text": BRICK_CHUNK, "score": 0.8, "source": "vector"},
+            {"text": ASH_SHIFA_CHUNK, "score": 0.6, "source": "vector"},
         ]
         rr = __import__("asyncio").run(rerank(PIZZA_QUESTION, res, top_k=2))
         assert rr == []
 
     def test_ash_shifa_rerank_above_threshold(self):
         res = [
-            {"text": BRICK_CHUNK, "score": 0.8},
-            {"text": ASH_SHIFA_CHUNK, "score": 0.6},
+            {"text": BRICK_CHUNK, "score": 0.8, "source": "vector"},
+            {"text": ASH_SHIFA_CHUNK, "score": 0.6, "source": "vector"},
         ]
         rr = __import__("asyncio").run(
             rerank(ASH_SHIFA_QUESTION, res, top_k=2)
@@ -118,6 +118,25 @@ class TestRerankThreshold:
         assert rr[0]["score"] >= 0.30
         # the chunk containing the claim ranks first
         assert ASH_SHIFA_CHUNK in rr[0]["text"]
+
+    def test_keyword_and_vector_both_participate_by_source(self):
+        """The vector/keyword split must rely on the explicit 'source' field,
+        not the old score == 0.5 sentinel. Two results with the SAME non-sentinel
+        score are split purely by their 'source' tag, and both contribute to the
+        fused score."""
+        vector_item = {"text": ASH_SHIFA_CHUNK, "score": 0.9, "source": "vector"}
+        keyword_item = {
+            "text": BRICK_CHUNK,
+            "score": 0.9,
+            "source": "keyword",
+        }
+        rr = __import__("asyncio").run(
+            rerank(ASH_SHIFA_QUESTION, [vector_item, keyword_item], top_k=2)
+        )
+        # both tagged results are kept, each tagged with its own preserved source
+        assert len(rr) == 2
+        sources = {r["source"] for r in rr}
+        assert sources == {"vector", "keyword"}
 
 
 class TestOverlapChunkSuppression:

@@ -92,6 +92,56 @@ def _words_from_tesseract(page: fitz.Page) -> list[dict]:
             pass
 
 
+def _stamp_real_geometry(page: fitz.Page, gemini_words: list[dict]) -> list[dict]:
+    """Stamp real, highlightable per-word geometry onto Gemini-OCR words.
+
+    The Gemini OCR path has no layout data, so ``_text_to_words`` emits
+    synthetic char-width-heuristic boxes (``geom="synthetic"``) that the
+    chunker uses only for line/paragraph grouping and that ``_compute_page_bboxes``
+    refuses to emit as highlight geometry. As a result Gemini-OCR'd chunks
+    never carry a real ``page_bboxes``/``bbox`` and highlighting falls back to
+    a costly runtime text-locate.
+
+    This resolver keeps Gemini's OCR text as the source of truth for the
+    actual characters but borrows the REAL word bounding rectangles that the
+    rest of the codebase already extracts — the PDF text layer here (fitz),
+    falling back to Tesseract for scanned pages — and overwrites the matching
+    Gemini word with that real box and ``geom="real"``. Words whose real box
+    cannot be matched are left as-is (synthetic) and simply contribute no
+    highlight box, so the chunk still gets correct per-page geometry wherever
+    the text layer / OCR agrees with Gemini.
+    """
+    # Real boxes in this page's PDF-point coordinate space. Prefer the
+    # vector text layer; only fall back to Tesseract for scanned pages that
+    # carry no extractable text in the PDF itself.
+    real = _words_from_fitz(page)
+    real_text = [w for w in real if (w.get("text") or "").strip()]
+    if len(real_text) < WORD_THRESHOLD:
+        real_text = [w for w in _words_from_tesseract(page) if (w.get("text") or "").strip()]
+
+    def _norm(tok: str) -> str:
+        return re.sub(r"\s+", "", tok).lower()
+
+    # Greedy sequential alignment: each Gemini word grabs the first unmatched
+    # real word with the same normalised text. Both lists are in reading order,
+    # so this lines up in practice.
+    matched = []
+    for gw in gemini_words:
+        gtext = (gw.get("text") or "").strip()
+        target = _norm(gtext)
+        if not target:
+            matched.append(gw)
+            continue
+        for i, rw in enumerate(real_text):
+            if _norm(rw["text"]) == target:
+                gw["bbox"] = list(rw["bbox"])
+                gw["geom"] = "real"
+                del real_text[i]
+                break
+        matched.append(gw)
+    return matched
+
+
 def _text_to_words(text: str, page_num: int, printed_page_num: int | None = None) -> list[dict]:
     """Convert Gemini OCR text into word dicts with synthetic line bboxes.
 

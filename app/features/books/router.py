@@ -15,7 +15,6 @@ from app.core.security import get_current_user
 from app.core.db import get_db
 from app.models.tables import Book, ProcessingJob, User
 from app.core.storage import storage
-from app.workers.celery_app import process_book
 
 router = APIRouter(prefix="/admin/books", tags=["books"])
 
@@ -109,7 +108,12 @@ async def upload_book(
     session.add(job)
     await session.commit()
 
-    process_book.delay(book_id=str(book.id), minio_path=minio_path, tenant_id=tenant_id)
+    # No direct process_book.delay() here. Dispatching is owned solely by the
+    # celery beat task dispatch_pending (every 60s), which acquires a redis
+    # lock per book before queuing. A delay() call here *and* dispatch_pending's
+    # beat tick could both queue the same fresh job (status="queued",
+    # task_id=NULL) — a duplicate-dispatch race. Relying solely on
+    # dispatch_pending guarantees exactly one execution per upload.
     return UploadOut(job_id=job_id, book_id=book_id)
 
 
@@ -218,8 +222,10 @@ async def download_book(
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Book not found")
 
+    from urllib.parse import quote
+    safe_title = quote(book.title, safe="")
     data = await storage.get_file(settings.MINIO_BUCKET_BOOKS, book.minio_path)
     return StreamingResponse(
         iter([data]), media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{book.title}.pdf"'},
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{safe_title}.pdf"},
     )

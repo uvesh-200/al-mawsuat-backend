@@ -34,7 +34,7 @@ async def _read_job(book_id: str) -> ProcessingJob | None:
 
 
 async def _update_job(
-    book_id: str, *, status: str, progress_pct: int, current_step: str | None = None,
+    book_id: str, *, tenant_id: str, status: str, progress_pct: int, current_step: str | None = None,
     error_msg: str | None = None, checkpoint: dict | None = None,
 ) -> None:
     now = datetime.now(timezone.utc)
@@ -74,7 +74,7 @@ async def _update_job(
     await publish_job_update({
         "book_id": book_id, "status": status, "progress_pct": progress_pct,
         "current_step": current_step, "error_msg": error_msg,
-    })
+    }, tenant_id)
 
 
 async def _heartbeat_loop(book_id: str, stop_event: asyncio.Event) -> None:
@@ -164,7 +164,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                     step = f"extracting ({c}/{t})"
                     chk = {"phase": "extracting", "page": c}
                     await _update_job(
-                        book_id, status="extracting", progress_pct=pct,
+                        book_id, tenant_id=tenant_id, status="extracting", progress_pct=pct,
                         current_step=step,
                         checkpoint=chk if c >= last_checkpoint_page + CHECKPOINT_INTERVAL else None,
                     )
@@ -204,7 +204,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                 await session.commit()
 
             await _update_job(
-                book_id, status="chunking", progress_pct=30, current_step="chunking",
+                book_id, tenant_id=tenant_id, status="chunking", progress_pct=30, current_step="chunking",
                 checkpoint={"phase": "chunking"},
             )
 
@@ -231,7 +231,7 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
             )
 
             await _update_job(
-                book_id, status="embedding", progress_pct=60, current_step="embedding",
+                book_id, tenant_id=tenant_id, status="embedding", progress_pct=60, current_step="embedding",
                 checkpoint={"phase": "embedding"},
             )
 
@@ -243,11 +243,16 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                 book_id, len(vectors), len(vectors[0]) if vectors else 0,
             )
             await _update_job(
-                book_id, status="indexing", progress_pct=85, current_step="indexing",
+                book_id, tenant_id=tenant_id, status="indexing", progress_pct=85, current_step="indexing",
                 checkpoint={"phase": "indexing"},
             )
 
         if start_phase <= _phase_index("indexing"):
+            if len(vectors) != len(chunks):
+                raise ValueError(
+                    f"vector/chunk misalignment: {len(vectors)} vectors vs "
+                    f"{len(chunks)} chunks; aborting instead of silently dropping content"
+                )
             await index_to_qdrant(chunks, vectors)
             await index_to_meilisearch(chunks)
             async with AsyncSessionLocal() as session:
@@ -257,10 +262,10 @@ async def process_book_async(book_id: str, minio_path: str, tenant_id: str) -> N
                 book_id, len(chunks),
             )
             await _update_job(
-                book_id, status="completed", progress_pct=100, current_step="completed",
+                book_id, tenant_id=tenant_id, status="completed", progress_pct=100, current_step="completed",
                 checkpoint={"phase": "completed"},
             )
-            await publish_book_update({"book_id": book_id, "status": "ready"})
+            await publish_book_update({"book_id": book_id, "status": "ready"}, tenant_id)
     finally:
         stop_heartbeat.set()
         try:

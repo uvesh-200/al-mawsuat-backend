@@ -45,7 +45,13 @@ async def _embed_batch(client: httpx.AsyncClient, texts: list[str]) -> list[list
                 continue
             resp.raise_for_status()
             data = resp.json()
-            return [e["values"] for e in data.get("embeddings", [])]
+            embeddings = data.get("embeddings", [])
+            if len(embeddings) != len(texts):
+                raise ValueError(
+                    f"Embedding batch returned {len(embeddings)} vectors for "
+                    f"{len(texts)} inputs; refusing to silently drop chunks"
+                )
+            return [e["values"] for e in embeddings]
         except (httpx.TimeoutException, httpx.ConnectError) as e:
             last_exc = e
             wait = min(BASE_DELAY * (2 ** min(attempt, 4)) + random.uniform(0, 1), MAX_DELAY)
@@ -59,6 +65,12 @@ async def _embed_batch(client: httpx.AsyncClient, texts: list[str]) -> list[list
                 await asyncio.sleep(wait)
             else:
                 raise
+        except ValueError:
+            # Vector-count mismatch is a deterministic server/data problem, not
+            # a transient network blip; retrying re-sends the identical request
+            # and cannot help. Fail loudly immediately instead of silently
+            # truncating chunks.
+            raise
         except Exception as e:
             last_exc = e
             logger.warning("Embedding attempt %d/%d failed: %s", attempt + 1, MAX_RETRIES, e)

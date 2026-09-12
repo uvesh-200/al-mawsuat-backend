@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import tempfile
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import fitz
@@ -27,6 +28,7 @@ from app.features.ingestion.words import (  # noqa: F401
     TESSERACT_LANG,
     WORD_THRESHOLD,
     _clean_gemini_text,
+    _stamp_real_geometry,
     _text_to_words,
     _words_from_fitz,
     _words_from_tesseract,
@@ -84,6 +86,13 @@ async def _extract_tesseract(pdf_bytes: bytes, progress_callback=None) -> list[d
 
     max_workers = settings.OCR_MAX_WORKERS or os.cpu_count() or 4
     results = [None] * total
+    # A single completed-pages counter, incremented once per callback
+    # invocation, independent of which page index just finished. Under
+    # concurrent extraction the page indices complete out of order, so using
+    # the just-completed page's index as "current" makes the displayed count
+    # jump backward. The completed counter is monotonic by construction.
+    completed = 0
+    completed_lock = threading.Lock()
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {
             pool.submit(_process_page_tesseract, pdf_bytes, i + 1): i
@@ -92,8 +101,10 @@ async def _extract_tesseract(pdf_bytes: bytes, progress_callback=None) -> list[d
         for future in as_completed(futures):
             idx = futures[future]
             results[idx] = future.result()
+            with completed_lock:
+                completed += 1
             if progress_callback:
-                progress_callback(idx + 1, total)
+                progress_callback(completed, total)
 
     _impute_printed_pages(results)
     _log_page_summary(results)
@@ -137,46 +148,54 @@ async def _extract_gemini(pdf_bytes: bytes, progress_callback=None) -> list[dict
                     return idx, ""
 
         tasks = [_ocr_one(i, img) for i, img in enumerate(all_images)]
+        # Completed-pages counter, monotonic regardless of which page's OCR
+        # finishes first (asyncio.as_completed yields out of order).
+        completed = 0
         for coro in asyncio.as_completed(tasks):
             idx, text = await coro
             all_texts[idx] = text
+            completed += 1
             if progress_callback:
-                progress_callback(idx + 1, total)
+                progress_callback(completed, total)
 
     results = []
-    for i, text in enumerate(all_texts):
-        physical_page = i + 1
-        ocr_text = text or ""
+    # Reopen once to borrow real per-word geometry (fitz text layer, else
+    # Tesseract) for the Gemini-OCR'd pages so chunks carry real page_bboxes.
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as geo_doc:
+        for i, text in enumerate(all_texts):
+            physical_page = i + 1
+            ocr_text = text or ""
 
-        # Gemini sometimes returns empty text for scripture-heavy pages
-        # (safety "RECITATION" block). Fall back to local tesseract OCR.
-        if not ocr_text.strip():
-            with fitz.open(stream=pdf_bytes, filetype="pdf") as fallback_doc:
-                fallback_words = _words_from_tesseract(fallback_doc[i])
-            if fallback_words:
-                ocr_text = " ".join(w["text"] for w in fallback_words)
-                logger.warning(
-                    "Gemini OCR empty for physical page %d; used tesseract fallback (%d words)",
-                    physical_page, len(fallback_words),
-                )
+            # Gemini sometimes returns empty text for scripture-heavy pages
+            # (safety "RECITATION" block). Fall back to local tesseract OCR.
+            if not ocr_text.strip():
+                with fitz.open(stream=pdf_bytes, filetype="pdf") as fallback_doc:
+                    fallback_words = _words_from_tesseract(fallback_doc[i])
+                if fallback_words:
+                    ocr_text = " ".join(w["text"] for w in fallback_words)
+                    logger.warning(
+                        "Gemini OCR empty for physical page %d; used tesseract fallback (%d words)",
+                        physical_page, len(fallback_words),
+                    )
 
-        # Try footer extraction from Gemini OCR text first; fall back to
-        # fitz raw text (which is available for text-layer PDFs at zero cost).
-        footer_num = _extract_footer_page_number(ocr_text)
-        if footer_num is None:
-            footer_num = _extract_footer_page_number(fitz_texts[i])
+            # Try footer extraction from Gemini OCR text first; fall back to
+            # fitz raw text (which is available for text-layer PDFs at zero cost).
+            footer_num = _extract_footer_page_number(ocr_text)
+            if footer_num is None:
+                footer_num = _extract_footer_page_number(fitz_texts[i])
 
-        # Canonical page number = physical page index (see _process_page_tesseract).
-        page_num = physical_page
+            # Canonical page number = physical page index (see _process_page_tesseract).
+            page_num = physical_page
 
-        words = _text_to_words(ocr_text, page_num, footer_num)
-        results.append({
-            "physical_page": physical_page,
-            "page_num": page_num,
-            "printed_page_num": footer_num,
-            "footer_extracted": footer_num is not None,
-            "words": words,
-        })
+            words = _text_to_words(ocr_text, page_num, footer_num)
+            words = _stamp_real_geometry(geo_doc[i], words)
+            results.append({
+                "physical_page": physical_page,
+                "page_num": page_num,
+                "printed_page_num": footer_num,
+                "footer_extracted": footer_num is not None,
+                "words": words,
+            })
 
     # Option (b): impute missing printed page numbers from the modal offset
     # BEFORE _log_page_summary so the trace shows resolved values.

@@ -112,6 +112,7 @@ async def vector_search(
             "score": r.score,
             "book_id": r.payload.get("book_id"),
             "book_type": r.payload.get("book_type"),
+            "source": "vector",
         }
         for r in results
     ]
@@ -196,9 +197,9 @@ async def keyword_search(
             "page_bboxes": h.get("page_bboxes"),
             "page_offsets": h.get("page_offsets"),
             "minio_path": h.get("minio_path"),
-            "score": 0.5,
             "book_id": h.get("book_id"),
             "book_type": h.get("book_type"),
+            "source": "keyword",
         }
         for h in hits
     ]

@@ -122,6 +122,15 @@ def _parse_batch_response(data: dict, expected: int) -> list[str]:
                 parts.append(text)
 
     full_text = "\n".join(parts)
+
+    # One image per request (OCR_BATCH_SIZE is permanently 1), so expected is
+    # always 1. A page's real content can legitimately contain separator-like
+    # markers ("---", "**Page N**", "[Page N]"). Splitting on those and
+    # truncating to texts[:expected] silently dropped everything after the
+    # first such marker; batching is off, so just return the full text.
+    if expected == 1:
+        return [full_text.strip()]
+
     separators = _find_image_separators(full_text)
     if separators:
         texts = []
